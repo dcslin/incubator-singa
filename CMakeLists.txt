@@ -28,6 +28,10 @@ MATH(EXPR SINGA_VERSION "${SINGA_MAJOR_VERSION} * 1000 + ${SINGA_MINOR_VERSION} 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Thirdparty)
 #message(STATUS "module path: ${CMAKE_MODULE_PATH}")
 
+INCLUDE_DIRECTORIES(/usr/local/include)
+LINK_DIRECTORIES(/usr/local/lib/)
+ADD_DEFINITIONS(-DUSE_MKLDNN=ON)
+
 # Flags
 IF(UNIX)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -O2 -fPIC -Wall -pthread")
@@ -66,6 +70,7 @@ OPTION(USE_OPENCL "Use OpenCL" OFF)
 OPTION(ENABLE_DIST "Enable distributed training" OFF)
 OPTION(DISABLE_WARNINGS "Disable warnings under windows" ON)
 OPTION(USE_MODULES "Compile dependent libs as submodules together with singa" OFF)
+OPTION(USE_MKLDNN "Use mkl-dnn libs" ON)
 
 
 # TODO: remove all USE_CBLAS in codes

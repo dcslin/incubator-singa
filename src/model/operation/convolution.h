@@ -12,6 +12,9 @@
 #include "../layer/cudnn_utils.h"
 #endif // USE_CUDNN
 
+#ifdef USE_MKLDNN
+#include <mkldnn.h>
+#endif // USE_MKLDNN
 
 namespace singa {
 
@@ -45,7 +48,6 @@ public:
   size_t col_width;
   size_t imagesize;
 };
-
 
 Tensor CpuConvForward(const Tensor &x, Tensor &W,  Tensor &b, const ConvHandle &ch);
 
