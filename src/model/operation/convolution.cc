@@ -1,9 +1,6 @@
 #include "./convolution.h"
 #include "../layer/convolution.h"
 
-#include "singa/utils/mkl_utils.h"
-#include "singa/utils/logging.h"
-
 
 namespace singa {
 
@@ -69,89 +66,47 @@ Tensor CpuConvForward(const Tensor &x, Tensor &W,  Tensor &b,
 
     /* build mkdnn dims */
     const int groups = 1;  // TODO(shicong): add groups into convhandle as configurable
+    mkldnn::memory::dims b_dims = {(int)ch.num_filters};
+    mkldnn::memory::dims strides_dims = {(int)ch.stride_h, (int)ch.stride_w};
+    mkldnn::memory::dims padding_dims = {(int)ch.pad_h, (int)ch.pad_w};
     // mkldnn_nchw
-    const mkldnn_dims_t x_dims = {(int)ch.batchsize,(int)ch.channels, (int)ch.height,(int)ch.width};
+    mkldnn::memory::dims x_dims = {(int)ch.batchsize,(int)ch.channels, (int)ch.height,(int)ch.width};
+    mkldnn::memory::dims out_dims = {(int)ch.batchsize,(int)ch.num_filters, (int)ch.conv_height,(int)ch.conv_width};
     // mkldnn_goihw
-    const mkldnn_dims_t W_dims = { groups, (int)ch.num_filters/groups, (int)ch.channels/groups, (int)ch.kernel_h, (int)ch.kernel_w };
-    const mkldnn_dims_t b_dims = {(int)ch.num_filters};
-    const mkldnn_dims_t strides_dims = {(int)ch.stride_h, (int)ch.stride_w};
-    const mkldnn_dims_t padding_dims = {(int)ch.pad_h, (int)ch.pad_w};
-    // mkldnn_nchw
-    const mkldnn_dims_t out_dims = {(int)ch.batchsize,(int)ch.num_filters, (int)ch.conv_height,(int)ch.conv_width};
+//    mkldnn::memory::dims w_dims = { groups, (int)ch.num_filters/groups, (int)ch.channels/groups, (int)ch.kernel_h, (int)ch.kernel_w };
+    mkldnn::memory::dims w_dims = {(int)ch.num_filters, (int)ch.channels, (int)ch.kernel_h, (int)ch.kernel_w };
 
 
-    /* get engine */
-    auto engine = ctx->engine;
+    auto engine = mkldnn::engine(mkldnn::engine::cpu, 0);
 
 
-    /* create memory primitives */
-    // memory descriptor = data dims + sizes + format + layout
-    mkldnn_memory_desc_t x_md, W_md, b_md, out_md;
-    // memory primitive descriptor = memory descriptor + engine
-    mkldnn_primitive_desc_t x_pd, W_pd, b_pd, out_pd;
-    // memory primitive = memory primitive descriptor + input(NULL in this case) + output(NULL)
-    mkldnn_primitive_t x_p, W_p, b_p, out_p;
+    auto x_mem = mkldnn::memory({{{x_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw}, engine}, inblock->mutable_data());
+//    auto w_mem = mkldnn::memory({{{w_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::goihw}, engine}, wblock->mutable_data());
+    auto w_mem = mkldnn::memory({{{w_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::oihw}, engine}, wblock->mutable_data());
+    auto b_mem = mkldnn::memory({{{b_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::x}, engine}, bblock->mutable_data());
 
-    // x
-    MKL_CHECK(mkldnn_memory_desc_init(&x_md, 4, x_dims, mkldnn_f32, mkldnn_nchw));
-    MKL_CHECK(mkldnn_memory_primitive_desc_create(&x_pd, &x_md, engine));
-    MKL_CHECK(mkldnn_primitive_create(&x_p, x_pd, NULL, NULL));
-    MKL_CHECK(mkldnn_memory_set_data_handle(x_p, inblock->mutable_data()));
+    auto x_md = mkldnn::memory::desc( { x_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw);
+//    auto w_md = mkldnn::memory::desc( { w_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::goihw);
+    auto w_md = mkldnn::memory::desc( { w_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::oihw);
+    auto b_md = mkldnn::memory::desc( { b_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::x);
+    auto y_md = mkldnn::memory::desc( { out_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw);
 
-    // weights
-    MKL_CHECK(mkldnn_memory_desc_init(&W_md, 5, W_dims, mkldnn_f32, mkldnn_goihw));
-    MKL_CHECK(mkldnn_memory_primitive_desc_create(&W_pd, &W_md, engine));
-    MKL_CHECK(mkldnn_primitive_create(&W_p, W_pd, NULL, NULL));
-    MKL_CHECK(mkldnn_memory_set_data_handle(W_p, wblock->mutable_data()));
-
-    // bias
-    MKL_CHECK(mkldnn_memory_desc_init(&b_md, 1, b_dims, mkldnn_f32, mkldnn_x));
-    MKL_CHECK(mkldnn_memory_primitive_desc_create(&b_pd, &b_md, engine));
-    MKL_CHECK(mkldnn_primitive_create(&b_p, b_pd, NULL, NULL));
-    MKL_CHECK(mkldnn_memory_set_data_handle(b_p, bblock->mutable_data()));
-
-    // out
-    MKL_CHECK(mkldnn_memory_desc_init(&out_md, 4, out_dims, mkldnn_f32, mkldnn_nchw));
-    MKL_CHECK(mkldnn_memory_primitive_desc_create(&out_pd, &out_md, engine));
-    MKL_CHECK(mkldnn_primitive_create(&out_p, out_pd, NULL, NULL));
-    MKL_CHECK(mkldnn_memory_set_data_handle(out_p, outblock->mutable_data()));
+    auto conv_d = mkldnn::convolution_forward::desc(
+            mkldnn::prop_kind::forward_inference, mkldnn::convolution_direct, x_md,
+            w_md, b_md, y_md, strides_dims,
+            padding_dims, padding_dims, mkldnn::padding_kind::zero);
+    auto conv_pd = mkldnn::convolution_forward::primitive_desc(conv_d, engine);
 
 
-    /* create a convolution */
-    mkldnn_primitive_at_t conv_p_input[] = {
-        mkldnn_primitive_at(x_p, 0),
-        mkldnn_primitive_at(W_p, 0),
-        mkldnn_primitive_at(b_p, 0)
-    };
-    const_mkldnn_primitive_t conv_p_output[1] = {out_p};
-
-    // conv descriptor = conv algo/config/... + x/W/b/out md
-    mkldnn_convolution_desc_t conv_d;
-    // conv primitive descriptor = conv descriptor + engine
-    mkldnn_primitive_desc_t conv_pd;
-    // conv primitive = conv primitive descriptor + conv inputs + conv outputs
-    mkldnn_primitive_t conv_p;
-
-    MKL_CHECK(mkldnn_convolution_forward_desc_init(&conv_d, mkldnn_forward_training, mkldnn_convolution_direct,
-                                                   &x_md, &W_md, &b_md, &out_md,
-                                                   strides_dims, padding_dims, NULL, mkldnn_padding_zero));
-    MKL_CHECK(mkldnn_primitive_desc_create(&conv_pd, &conv_d, engine, NULL));
-    MKL_CHECK(mkldnn_primitive_create(&conv_p, conv_pd, conv_p_input, conv_p_output));
+    auto y_mem = mkldnn::memory(conv_pd.dst_primitive_desc());
+    y_mem.set_data_handle(outblock->mutable_data());
 
 
-    /* run on stream */
-    mkldnn_primitive_t net[] = {conv_p};
+    std::vector<mkldnn::primitive> net;
+    net.push_back(mkldnn::convolution_forward(conv_pd, x_mem, w_mem, b_mem, y_mem));
 
-    auto stream = ctx->stream;
 
-    MKL_CHECK(mkldnn_stream_submit(stream, 1, net, NULL));
-    MKL_CHECK(mkldnn_stream_wait(stream, 1, NULL));
-
-    MKL_CHECK(mkldnn_primitive_destroy(conv_p));
-    MKL_CHECK(mkldnn_primitive_destroy(x_p));
-    MKL_CHECK(mkldnn_primitive_destroy(W_p));
-    MKL_CHECK(mkldnn_primitive_destroy(b_p));
-    MKL_CHECK(mkldnn_primitive_destroy(out_p));
+    mkldnn::stream(mkldnn::stream::kind::eager).submit(net).wait();
 
   }, {x.block(), W.block(), b.block()}, {output.block()});
 
