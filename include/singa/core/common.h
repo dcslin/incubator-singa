@@ -40,7 +40,7 @@
 #endif  // USE_OPENCL
 
 #ifdef USE_MKLDNN
-#include <mkldnn.h>
+//#include <mkldnn.h>
 #include <mkldnn.hpp>
 #endif  // USE_MKLDNN
 

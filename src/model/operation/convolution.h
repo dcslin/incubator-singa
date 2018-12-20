@@ -13,7 +13,6 @@
 #endif // USE_CUDNN
 
 #ifdef USE_MKLDNN
-#include <mkldnn.h>
 #include <mkldnn.hpp>
 #endif // USE_MKLDNN
 
@@ -26,6 +25,8 @@ public:
              const std::vector<size_t>& stride, const std::vector<size_t>& padding,
              const size_t in_channels, const size_t out_channels,
              const bool bias);
+
+  ~ConvHandle();
 
   size_t kernel_w;
   size_t pad_w;
@@ -51,13 +52,22 @@ public:
 
 #ifdef USE_MKLDNN
   mkldnn::memory::dims b_dims;
-  mkldnn::memory::dims strides_dims;
-  mkldnn::memory::dims padding_dims;
+  mkldnn::memory::dims s_dims;
+  mkldnn::memory::dims p_dims;
   mkldnn::memory::dims x_dims;
-  mkldnn::memory::dims out_dims;
+  mkldnn::memory::dims o_dims;
   mkldnn::memory::dims w_dims;
+
+  mkldnn::memory::desc *x_md;
+  mkldnn::memory::desc *w_md;
+  mkldnn::memory::desc *b_md;
+  mkldnn::memory::desc *y_md;
+  mkldnn::engine *engine;
+  mkldnn::convolution_forward::desc *conv_d;
+  mkldnn::convolution_forward::primitive_desc *conv_pd;
 #endif // USE_MKLDNN
 };
+
 
 Tensor CpuConvForward(const Tensor &x, Tensor &W,  Tensor &b, const ConvHandle &ch);
 
