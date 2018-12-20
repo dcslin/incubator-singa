@@ -48,6 +48,15 @@ public:
   size_t col_height;
   size_t col_width;
   size_t imagesize;
+
+#ifdef USE_MKLDNN
+  mkldnn::memory::dims b_dims;
+  mkldnn::memory::dims strides_dims;
+  mkldnn::memory::dims padding_dims;
+  mkldnn::memory::dims x_dims;
+  mkldnn::memory::dims out_dims;
+  mkldnn::memory::dims w_dims;
+#endif // USE_MKLDNN
 };
 
 Tensor CpuConvForward(const Tensor &x, Tensor &W,  Tensor &b, const ConvHandle &ch);

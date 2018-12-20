@@ -37,6 +37,21 @@ ConvHandle::ConvHandle(const Tensor &input,
   col_height = in_channels * kernel_w * kernel_h;
   col_width = conv_height * conv_width;
   imagesize = input.Size() / batchsize;
+
+
+
+#ifdef USE_MKLDNN
+  //  const int groups = 1;  // TODO(shicong): add groups into convhandle as configurable
+  b_dims = {(int)num_filters};
+  strides_dims = {(int)stride_h, (int)stride_w};
+  padding_dims = {(int)pad_h, (int)pad_w};
+  // mkldnn_nchw
+  x_dims = {(int)batchsize,(int)channels, (int)height,(int)width};
+  out_dims = {(int)batchsize,(int)num_filters, (int)conv_height,(int)conv_width};
+  // mkldnn_goihw
+  // w_dims = { groups, (int)num_filters/groups, (int)channels/groups, (int)kernel_h, (int)kernel_w };
+  w_dims = {(int)num_filters, (int)channels, (int)kernel_h, (int)kernel_w };
+#endif // USE_MKLDNN
 }
 
 Tensor CpuConvForward(const Tensor &x, Tensor &W,  Tensor &b,
@@ -64,37 +79,25 @@ Tensor CpuConvForward(const Tensor &x, Tensor &W,  Tensor &b,
     Block *inblock = x.block(), *outblock = output.block(), *wblock = W.block(), *bblock = b.block();
 
 
-    /* build mkdnn dims */
-    const int groups = 1;  // TODO(shicong): add groups into convhandle as configurable
-    mkldnn::memory::dims b_dims = {(int)ch.num_filters};
-    mkldnn::memory::dims strides_dims = {(int)ch.stride_h, (int)ch.stride_w};
-    mkldnn::memory::dims padding_dims = {(int)ch.pad_h, (int)ch.pad_w};
-    // mkldnn_nchw
-    mkldnn::memory::dims x_dims = {(int)ch.batchsize,(int)ch.channels, (int)ch.height,(int)ch.width};
-    mkldnn::memory::dims out_dims = {(int)ch.batchsize,(int)ch.num_filters, (int)ch.conv_height,(int)ch.conv_width};
-    // mkldnn_goihw
-//    mkldnn::memory::dims w_dims = { groups, (int)ch.num_filters/groups, (int)ch.channels/groups, (int)ch.kernel_h, (int)ch.kernel_w };
-    mkldnn::memory::dims w_dims = {(int)ch.num_filters, (int)ch.channels, (int)ch.kernel_h, (int)ch.kernel_w };
-
-
     auto engine = mkldnn::engine(mkldnn::engine::cpu, 0);
 
 
-    auto x_mem = mkldnn::memory({{{x_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw}, engine}, inblock->mutable_data());
-//    auto w_mem = mkldnn::memory({{{w_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::goihw}, engine}, wblock->mutable_data());
-    auto w_mem = mkldnn::memory({{{w_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::oihw}, engine}, wblock->mutable_data());
-    auto b_mem = mkldnn::memory({{{b_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::x}, engine}, bblock->mutable_data());
+    // TODO(shicong): not passing the mutable data handle
+    auto x_mem = mkldnn::memory({{{ch.x_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw}, engine}, inblock->mutable_data());
+    //    auto w_mem = mkldnn::memory({{{w_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::goihw}, engine}, wblock->mutable_data());
+    auto w_mem = mkldnn::memory({{{ch.w_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::oihw}, engine}, wblock->mutable_data());
+    auto b_mem = mkldnn::memory({{{ch.b_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::x}, engine}, bblock->mutable_data());
 
-    auto x_md = mkldnn::memory::desc( { x_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw);
-//    auto w_md = mkldnn::memory::desc( { w_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::goihw);
-    auto w_md = mkldnn::memory::desc( { w_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::oihw);
-    auto b_md = mkldnn::memory::desc( { b_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::x);
-    auto y_md = mkldnn::memory::desc( { out_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw);
+    auto x_md = mkldnn::memory::desc( { ch.x_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw);
+    //    auto w_md = mkldnn::memory::desc( { w_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::goihw);
+    auto w_md = mkldnn::memory::desc( { ch.w_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::oihw);
+    auto b_md = mkldnn::memory::desc( { ch.b_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::x);
+    auto y_md = mkldnn::memory::desc( { ch.out_dims }, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw);
 
     auto conv_d = mkldnn::convolution_forward::desc(
             mkldnn::prop_kind::forward_inference, mkldnn::convolution_direct, x_md,
-            w_md, b_md, y_md, strides_dims,
-            padding_dims, padding_dims, mkldnn::padding_kind::zero);
+            w_md, b_md, y_md, ch.strides_dims,
+            ch.padding_dims, ch.padding_dims, mkldnn::padding_kind::zero);
     auto conv_pd = mkldnn::convolution_forward::primitive_desc(conv_d, engine);
 
 
@@ -112,7 +115,7 @@ Tensor CpuConvForward(const Tensor &x, Tensor &W,  Tensor &b,
 
   return output;
 
-#else // native cpu
+#else // ifndef USE_MKLDNN
   singa::InitLogging("");
   LOG(INFO) << "backed by native cpu";
 
@@ -165,6 +168,31 @@ Tensor CpuConvBackwardx(const Tensor &dy, Tensor &W, const Tensor &x,
         W.shape(2) == ch.kernel_h
         && W.shape(3) == ch.kernel_w) << "weights shape should not change";
 
+
+
+#ifdef USE_MKLDNN
+  singa::InitLogging("");
+  LOG(INFO) << "cpu conv backward x backed by MKLDNN";
+
+  Tensor dx;
+  dx.ResetLike(x);
+
+  dy.device()->Exec([&dx, &dy, &W, &ch](Context * ctx) {
+    Block *wblock = W.block(), *dyblock = dy.block(), *dxblock = dx.block();
+
+
+    std::vector<float> conv_user_diff_weights_buffer( std::accumulate(ch.w_dims.begin(), ch.w_dims.end(), 1, std::multiplies<uint32_t>()));
+
+
+  }, {dy.block(), W.block()}, {dx.block()});
+
+//  return dx;
+  return x;
+
+#else // ifndef USE_MKLDNN
+  singa::InitLogging("");
+  LOG(INFO) << "backed by native cpu";
+
   Shape w_shape = W.shape();
   W.Reshape(Shape{ch.num_filters, ch.col_height});
 
@@ -185,6 +213,7 @@ Tensor CpuConvBackwardx(const Tensor &dy, Tensor &W, const Tensor &x,
   }
   W.Reshape(w_shape);
   return dx;
+#endif  // USE_MKLDNN
 }
 
 Tensor CpuConvBackwardW(const Tensor &dy, const Tensor &x, const Tensor &W,
