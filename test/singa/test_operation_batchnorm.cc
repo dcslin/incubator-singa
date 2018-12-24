@@ -114,6 +114,7 @@ TEST(OperationBatchNorm, Forward) {
 }
 
 TEST(OperationBatchNorm, Backward) {
+  singa::InitLogging("");
 
   const float x_data[] = {1, 2, 3, 4};
   Tensor x(Shape{2, 2});
@@ -138,6 +139,9 @@ TEST(OperationBatchNorm, Backward) {
   const float beta_[] = {0, 0};
   Tensor beta(Shape{2});
   beta.CopyDataFromHostPtr(beta_, 2);
+
+  Tensor dw(Shape{2,2});
+  dw.CopyDataFromHostPtr(y_data, 2 * 2);
 
   try {
     using namespace mkldnn;
@@ -174,10 +178,15 @@ TEST(OperationBatchNorm, Backward) {
 
 
     // BWD
-    auto bn_bwd_d = batch_normalization_backward::desc( backward_data, dx_md, x_md, 1e-5f, use_scale_shift);
+//    auto bn_bwd_d = batch_normalization_backward::desc( backward_data, dx_md, x_md, 1e-5f, use_scale_shift);
+    auto bn_bwd_d = batch_normalization_backward::desc( backward, dx_md, x_md, 1e-5f, use_scale_shift);
     auto bn_bwd_pd = batch_normalization_backward::primitive_desc(bn_bwd_d, eng, bn_fwd_pd);
 
-    auto bn_bwd=batch_normalization_backward(bn_bwd_pd, x_mem, m_mem, v_mem, dy_mem, w_mem, dx_mem);
+//    auto dw_mem = memory({{{2,2}, memory::data_type::f32, memory::format::any}, eng}, dw.block()->mutable_data());
+    auto dw_mem = memory(bn_bwd_pd.diff_weights_primitive_desc());
+    dw_mem.set_data_handle(dw.block()->mutable_data());
+
+    auto bn_bwd=batch_normalization_backward(bn_bwd_pd, x_mem, m_mem, v_mem, dy_mem, w_mem, dx_mem, dw_mem);
 
     // run
     std::vector<primitive> pipeline;
@@ -196,13 +205,24 @@ TEST(OperationBatchNorm, Backward) {
     EXPECT_NEAR(.0f, dxptr[2], 1e-4f);
     EXPECT_NEAR(.0f, dxptr[3], 1e-4f);
 
+
+//  const float *dbnScaleptr = dw.data<float>();
+  const auto &dbnScaleShape = dw.shape();
+  EXPECT_EQ(2u, dbnScaleShape[0]);
+  EXPECT_EQ(2u, dbnScaleShape[1]);
+    float *dbnScaleptr = (float *) dw_mem.get_data_handle();
+  EXPECT_NEAR(-2.0f, dbnScaleptr[0], 1e-4f);
+  EXPECT_NEAR(-2.0f, dbnScaleptr[1], 1e-4f);
+  EXPECT_NEAR(6.0f, dbnScaleptr[2], 1e-4f);
+  EXPECT_NEAR(4.0f, dbnScaleptr[3], 1e-4f);
+
+
   }
   catch (mkldnn::error &e) {
     LOG(FATAL) << "MKLDNN Batch Norm" << "Status: " << e.status << " Message: " << e.message;
   }
 
 //  Tensor dbnScale;
-//  const float *dbnScaleptr = dbnScale.data<float>();
 //  const auto &dbnScaleShape = dbnScale.shape();
 //  EXPECT_EQ(1u, dbnScaleShape.size());
 //  EXPECT_EQ(2u, dbnScaleShape[0]);
