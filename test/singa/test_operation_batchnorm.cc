@@ -27,15 +27,16 @@
 
 using namespace singa;
 
+#ifdef USE_MKLDNN
 
 TEST(OperationBatchNorm, Forward) {
   const float x_data[] = {1, 2, 3, 4};
   Tensor in(Shape{2, 2});
   in.CopyDataFromHostPtr(x_data, 2 * 2);
 
-  const float y_data[] = {9, 9, 9, 9};
-  Tensor y(Shape{2, 2});
-  y.CopyDataFromHostPtr(y_data, 2 * 2);
+//  const float y_data[] = {9, 9, 9, 9};
+//  Tensor y(Shape{2, 2});
+//  y.CopyDataFromHostPtr(y_data, 2 * 2);
 
   const float alpha_[] = {1, 1};
   Tensor alpha(Shape{2});
@@ -45,84 +46,34 @@ TEST(OperationBatchNorm, Forward) {
   Tensor beta(Shape{2});
   beta.CopyDataFromHostPtr(beta_, 2);
 
-  singa::InitLogging("");
+  Tensor moving_mean(Shape{});
+  Tensor moving_var(Shape{});
 
-  try {
-    /* implementation */
 
-    // some useful info: https://github.com/intel/mkl-dnn/issues/367
-    using namespace mkldnn;
+  BatchNormHandle batch_norm_handle(1u,in);
+  Tensor y = CpuBatchNormForwardInference(batch_norm_handle, in, alpha, beta, moving_mean,moving_var);
 
-    // mem
-    mkldnn::memory::dims x_dims = {2, 2};
-    mkldnn::memory::dims y_dims = {2, 2};
-    mkldnn::engine eng = mkldnn::engine(mkldnn::engine::cpu, 0);
 
-    auto x_md = memory::desc(x_dims, mkldnn::memory::data_type::f32, memory::format::nc);
 
-    auto x_mem = memory({{{x_dims}, memory::data_type::f32, memory::format::nc}, eng}, in.block()->mutable_data());
-    const memory y_mem = memory({{{y_dims}, memory::data_type::f32, memory::format::nc}, eng}, y.block()->mutable_data());
-
-    // bn fwd operations
-    // bn_fwd_d = x_md
-    // bn_fwd_pd = bn_fwd_d
-    batch_normalization_flag bn_flags = use_scale_shift;
-//    auto bn_prop_kind = prop_kind::forward_training;
-    prop_kind bn_fwd_prop_kind = forward_inference;
-    auto bn_fwd_d = batch_normalization_forward::desc(bn_fwd_prop_kind, x_md, 1e-5f, bn_flags);
-    auto bn_fwd_pd = batch_normalization_forward::primitive_desc(bn_fwd_d, eng);
-
-    const int n_outputs_expected = mkldnn_primitive_desc_query_s32(bn_fwd_pd.get(), mkldnn_query_num_of_outputs_s32, 0);
-    EXPECT_EQ(1u, n_outputs_expected);
-
-    auto w_mem = memory(bn_fwd_pd.weights_primitive_desc());
-    float w_data[4] = {1, 1, 2, 2};
-    w_mem.set_data_handle(w_data);
-
-//    auto m_mem = memory(bn_fwd_pd.mean_primitive_desc());
-//    auto v_mem = memory(bn_fwd_pd.variance_primitive_desc());
-//    float m_data[4] = {0, 0, 0, 0};
-//    float v_data[4] = {0, 0, 0, 0};
-//    m_mem.set_data_handle(m_data);
-//    v_mem.set_data_handle(v_data);
-
-//    auto bn = batch_normalization_forward(bn_fwd_pd, x_mem, w_mem, y_mem, m_mem, v_mem);
-//    auto bn = batch_normalization_forward(bn_fwd_pd, (const primitive::at)x_mem, (const primitive::at)m_mem, (const primitive::at)v_mem, (const primitive::at)w_mem, y_mem);
-    auto bn = batch_normalization_forward(bn_fwd_pd, (const primitive::at) x_mem, (const primitive::at) w_mem, y_mem);
-
-    std::vector<primitive> pipeline;
-    pipeline.push_back(bn);
-    stream(stream::kind::eager).submit(pipeline).wait();
-
-    float *outptr = (float *) y_mem.get_data_handle();
-    const auto &shape = y.shape();
-    EXPECT_EQ(2u, shape.size());
-    EXPECT_EQ(2u, shape[0]);
-    EXPECT_EQ(2u, shape[1]);
-    EXPECT_NEAR(1.0f, outptr[0], 1e-4f);
-    EXPECT_NEAR(1.0f, outptr[1], 1e-4f);
-    EXPECT_NEAR(3.0f, outptr[2], 1e-4f);
-    EXPECT_NEAR(3.0f, outptr[3], 1e-4f);
-
-  }
-  catch (mkldnn::error &e) {
-    LOG(FATAL) << "MKLDNN Batch Norm" << "Status: " << e.status << " Message: " << e.message;
-  }
-
-  EXPECT_NEAR(1.0f, 1.000001f, 1e-4f);
-  /* implementation */
+  const float *outptr = y.data<float>();
+  const auto &shape = y.shape();
+  EXPECT_EQ(2u, shape.size());
+  EXPECT_EQ(2u, shape[0]);
+  EXPECT_EQ(2u, shape[1]);
+  EXPECT_NEAR(1.0f, outptr[0], 1e-4f);
+  EXPECT_NEAR(1.0f, outptr[1], 1e-4f);
+  EXPECT_NEAR(3.0f, outptr[2], 1e-4f);
+  EXPECT_NEAR(3.0f, outptr[3], 1e-4f);
 }
 
 TEST(OperationBatchNorm, Backward) {
-  singa::InitLogging("");
-
   const float x_data[] = {1, 2, 3, 4};
   Tensor x(Shape{2, 2});
   x.CopyDataFromHostPtr(x_data, 2 * 2);
 
-  const float dx_data[] = {9, 9, 9, 9};
-  Tensor dx(Shape{2, 2});
-  dx.CopyDataFromHostPtr(dx_data, 2 * 2);
+//  const float dx_data[] = {9, 9, 9, 9};
+//  Tensor dx(Shape{2, 2});
+//  dx.CopyDataFromHostPtr(dx_data, 2 * 2);
 
   const float y_data[] = {9, 9, 9, 9};
   Tensor y(Shape{2, 2});
@@ -140,102 +91,44 @@ TEST(OperationBatchNorm, Backward) {
   Tensor beta(Shape{2});
   beta.CopyDataFromHostPtr(beta_, 2);
 
-  Tensor dw(Shape{2,2});
-  dw.CopyDataFromHostPtr(y_data, 2 * 2);
-
-  try {
-    using namespace mkldnn;
-    mkldnn::engine eng = mkldnn::engine(mkldnn::engine::cpu, 0);
+//  Tensor dw(Shape{2, 2});
+//  dw.CopyDataFromHostPtr(y_data, 2 * 2);
 
 
-    mkldnn::memory::dims x_dims = {2, 2};
-    auto x_md = memory::desc(x_dims, mkldnn::memory::data_type::f32, memory::format::nc);
-    auto dx_md = memory::desc(x_dims, mkldnn::memory::data_type::f32, memory::format::nc);
+  singa::BatchNormHandle batch_norm_handle(0.0f,x);
+  const float running_mean_[] = {0,0};
+  Tensor running_mean(Shape{2});
+  Tensor running_var(Shape{2});
+  running_mean.CopyDataFromHostPtr(running_mean_, 2);
+  running_var.CopyDataFromHostPtr(running_mean_, 2);
+
+  auto ret0 = CpuBatchNormForwardTraining(batch_norm_handle, x, alpha, beta, running_mean, running_var);
 
 
-    auto x_mem = memory({{{x_dims}, memory::data_type::f32, memory::format::nc}, eng}, x.block()->mutable_data());
-    auto dx_mem = memory({{{x_dims}, memory::data_type::f32, memory::format::nc}, eng}, dx.block()->mutable_data());
-    auto y_mem = memory({{{x_dims}, memory::data_type::f32, memory::format::nc}, eng}, y.block()->mutable_data());
-    auto dy_mem = memory({{{x_dims}, memory::data_type::f32, memory::format::nc}, eng}, dy.block()->mutable_data());
+  Tensor bnScale, bnBias;
+  auto  ret =  CpuBatchNormBackwardx( batch_norm_handle, y, dy, x, bnScale,  bnBias, ret0[1],  ret0[2]);
+
+  const auto &shape = ret[0].shape();
+  EXPECT_EQ(2u, shape.size());
+  EXPECT_EQ(2u, shape[0]);
+  EXPECT_EQ(2u, shape[1]);
+  const float *dxptr = ret[0].data<float>();
+  EXPECT_NEAR(.0f, dxptr[0], 1e-4f);
+  EXPECT_NEAR(.0f, dxptr[1], 1e-4f);
+  EXPECT_NEAR(.0f, dxptr[2], 1e-4f);
+  EXPECT_NEAR(.0f, dxptr[3], 1e-4f);
 
 
-    auto bn_fwd_d = batch_normalization_forward::desc(forward_training, x_md, 1e-5f, use_scale_shift);
-    auto bn_fwd_pd = batch_normalization_forward::primitive_desc(bn_fwd_d, eng);
-
-    const int n_outputs_expected = mkldnn_primitive_desc_query_s32(bn_fwd_pd.get(), mkldnn_query_num_of_outputs_s32, 0);
-    EXPECT_EQ(3u, n_outputs_expected);
-
-    auto m_mem = memory(bn_fwd_pd.mean_primitive_desc());
-    auto v_mem = memory(bn_fwd_pd.variance_primitive_desc());
-
-
-    auto w_mem = memory(bn_fwd_pd.weights_primitive_desc());
-    float w_data[4] = {alpha_[0], alpha_[1], beta_[0], beta_[1]};
-    w_mem.set_data_handle(w_data);
-
-
-    auto bn_fwd = batch_normalization_forward(bn_fwd_pd, x_mem, w_mem, y_mem, m_mem, v_mem);
-
-
-    // BWD
-//    auto bn_bwd_d = batch_normalization_backward::desc( backward_data, dx_md, x_md, 1e-5f, use_scale_shift);
-    auto bn_bwd_d = batch_normalization_backward::desc( backward, dx_md, x_md, 1e-5f, use_scale_shift);
-    auto bn_bwd_pd = batch_normalization_backward::primitive_desc(bn_bwd_d, eng, bn_fwd_pd);
-
-//    auto dw_mem = memory({{{2,2}, memory::data_type::f32, memory::format::any}, eng}, dw.block()->mutable_data());
-    auto dw_mem = memory(bn_bwd_pd.diff_weights_primitive_desc());
-    dw_mem.set_data_handle(dw.block()->mutable_data());
-
-    auto bn_bwd=batch_normalization_backward(bn_bwd_pd, x_mem, m_mem, v_mem, dy_mem, w_mem, dx_mem, dw_mem);
-
-    // run
-    std::vector<primitive> pipeline;
-    pipeline.push_back(bn_fwd);
-    pipeline.push_back(bn_bwd);
-    stream(stream::kind::eager).submit(pipeline).wait();
-
-
-    const auto &shape = dx.shape();
-    EXPECT_EQ(2u, shape.size());
-    EXPECT_EQ(2u, shape[0]);
-    EXPECT_EQ(2u, shape[1]);
-    float *dxptr = (float *) dx_mem.get_data_handle();
-    EXPECT_NEAR(.0f, dxptr[0], 1e-4f);
-    EXPECT_NEAR(.0f, dxptr[1], 1e-4f);
-    EXPECT_NEAR(.0f, dxptr[2], 1e-4f);
-    EXPECT_NEAR(.0f, dxptr[3], 1e-4f);
-
-
-//  const float *dbnScaleptr = dw.data<float>();
-  const auto &dbnScaleShape = dw.shape();
-  EXPECT_EQ(2u, dbnScaleShape[0]);
+  const auto &dbnScaleShape = ret[1].shape();
   EXPECT_EQ(2u, dbnScaleShape[1]);
-    float *dbnScaleptr = (float *) dw_mem.get_data_handle();
+  const auto &dbnBiasShape = ret[2].shape();
+  EXPECT_EQ(2u, dbnBiasShape[1]);
+  const float *dbnScaleptr = ret[1].data<float>();
   EXPECT_NEAR(-2.0f, dbnScaleptr[0], 1e-4f);
   EXPECT_NEAR(-2.0f, dbnScaleptr[1], 1e-4f);
-  EXPECT_NEAR(6.0f, dbnScaleptr[2], 1e-4f);
-  EXPECT_NEAR(4.0f, dbnScaleptr[3], 1e-4f);
-
-
-  }
-  catch (mkldnn::error &e) {
-    LOG(FATAL) << "MKLDNN Batch Norm" << "Status: " << e.status << " Message: " << e.message;
-  }
-
-//  Tensor dbnScale;
-//  const auto &dbnScaleShape = dbnScale.shape();
-//  EXPECT_EQ(1u, dbnScaleShape.size());
-//  EXPECT_EQ(2u, dbnScaleShape[0]);
-//
-//  EXPECT_NEAR(-2.0f, dbnScaleptr[0], 1e-4f);
-//  EXPECT_NEAR(-2.0f, dbnScaleptr[1], 1e-4f);
-//
-//  Tensor dbnBias;
-//  const float *dbnBiasptr = dbnBias.data<float>();
-//  const auto &dbnBiasShape = dbnBias.shape();
-//  EXPECT_EQ(1u, dbnBiasShape.size());
-//  EXPECT_EQ(2u, dbnBiasShape[0]);
-//
-//  EXPECT_NEAR(6.0f, dbnBiasptr[0], 1e-4f);
-//  EXPECT_NEAR(4.0f, dbnBiasptr[1], 1e-4f);
+  const float *dbnBiasptr = ret[2].data<float>();
+  EXPECT_NEAR(6.0f, dbnBiasptr[0], 1e-4f);
+  EXPECT_NEAR(4.0f, dbnBiasptr[1], 1e-4f);
 }
+
+#endif // USE_MKLDNN

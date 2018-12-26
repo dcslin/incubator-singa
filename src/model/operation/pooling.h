@@ -4,6 +4,10 @@
 #include <string>
 #include "singa/core/tensor.h"
 
+#ifdef USE_MKLDNN
+#include <mkldnn.hpp>
+#endif // USE_MKLDNN
+
 #ifdef USE_CUDNN
 #include <cudnn.h>
 #include "../layer/cudnn_utils.h"
@@ -34,6 +38,14 @@ class PoolingHandle {
 
   bool is_max_pooling;
 };
+
+#ifdef USE_MKLDNN
+
+Tensor CpuPoolingForward(const PoolingHandle &ph, const Tensor &x);
+Tensor CpuPoolingBackward(const PoolingHandle &ph, const Tensor &dy,
+                            const Tensor& x, const Tensor& y);
+
+#endif // USE_MKLDNN
 
 #ifdef USE_CUDNN
 class CudnnPoolingHandle : public PoolingHandle {

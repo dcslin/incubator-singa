@@ -7,13 +7,18 @@
 #ifdef USE_CUDNN
 #include <cudnn.h>
 #include "../layer/cudnn_utils.h" // check_cudnn
-#endif // USE_CUDNN 
+#endif // USE_CUDNN
+
+#ifdef USE_MKLDNN
+#include <mkldnn.hpp>
+#endif // USE_MKLDNN
 
 namespace singa {
 
 class BatchNormHandle {
  public:
   BatchNormHandle(const float momentum, const Tensor& input);
+  ~BatchNormHandle();
 
   float factor;
 
@@ -23,13 +28,36 @@ class BatchNormHandle {
   size_t width;
   bool is_2d;
   //bool train = true;
+#ifdef USE_MKLDNN
+    mkldnn::memory::dims x_dims;
+    mkldnn::memory::dims y_dims;
+  mkldnn::engine *eng;
+    mkldnn::memory::desc *x_md ;
+     mkldnn::memory::desc *dx_md;
+    mkldnn::batch_normalization_forward::desc *bn_fwd_d;
+    mkldnn::batch_normalization_forward::primitive_desc *bn_fwd_pd;
+    float epsilon;
+#endif //USE_MKLDNN
 };
 
-//Tensor CpuBatchNormForwardTraining();
 
-//Tensor CpuBatchNormForwardInference();
+#ifdef USE_MKLDNN
 
-//Tensor CpuBatchNormBackwardx();
+  Tensor
+  CpuBatchNormForwardInference(const BatchNormHandle &bnh, const Tensor &x, const Tensor &bnScale, const Tensor &bnBias,
+                               Tensor &running_mean, Tensor &running_var);
+
+  const std::vector<Tensor>
+  CpuBatchNormForwardTraining(const BatchNormHandle &bnh, const Tensor &x, const Tensor &bnScale, const Tensor &bnBias,
+                              Tensor &running_mean, Tensor &running_var);
+
+  const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
+                                                  const Tensor &y, const Tensor &dy,
+                                                  const Tensor &x, //const Tensor &dx,
+                                                  const Tensor &bnScale, const Tensor &bnBias,
+                                                  const Tensor &mean, const Tensor &var);
+
+#endif // USE_MKLDNN
 
 
 #ifdef USE_CUDNN
