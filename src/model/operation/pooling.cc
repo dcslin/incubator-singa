@@ -39,12 +39,21 @@ PoolingHandle::PoolingHandle(const Tensor &input,
   p_dims = {padding};
   eng = new mkldnn::engine(mkldnn::engine::cpu, 0);
 
-//  x_md = mkldnn::memory::desc({ph.x_dims}, memory::data_type::f32, memory::format::nchw);
-//  y_md = memory::desc({ph.y_dims}, memory::data_type::f32, memory::format::nchw);
-//pool_fwd_d = mkldnn::pooling_forward::desc(mkldnn::forward_training, mkldnn::pooling_max, x_md, y_md, s_dims, k_dims, p_dims, p_dims, mkldnn::padding_kind::zero);
-// pool_fwd_pd = mkldnn::pooling_forward::primitive_desc(pool_fwd_d, *eng);
-//  pool_ws_d = pool_fwd_pd.workspace_primitive_desc();
-//  ws_mem = new mkldnn::memory(pool_ws_d);
+  x_md = new mkldnn::memory::desc({x_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw);
+  y_md = new mkldnn::memory::desc({y_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw);
+
+  pool_fwd_d = new mkldnn::pooling_forward::desc(mkldnn::forward_training, mkldnn::pooling_max, *x_md, *y_md, s_dims, k_dims, p_dims, p_dims, mkldnn::padding_kind::zero);
+  pool_fwd_pd = new mkldnn::pooling_forward::primitive_desc(*pool_fwd_d, *eng);
+
+  // TODO(shicong):fix this
+  auto a = pool_fwd_pd->workspace_primitive_desc();
+  pool_ws_d = &a;
+
+//    During training max pooling requires workspace on forward (mkldnn_forward_training) and backward
+//    (mkldnn_backward) passes to save indices where maximum was found. Workspace layout is opaque and
+//    the indices cannot be restored from it. However one can use backward pooling to perform up-sampling
+//    (used in some detection topologies).
+  ws_mem = new mkldnn::memory(*pool_ws_d);
 #endif // USE_MKLDNN
 }
 
@@ -69,19 +78,11 @@ PoolingHandle::~PoolingHandle(){
 
         using namespace mkldnn;
 
-        auto x_md = memory::desc({ph.x_dims}, memory::data_type::f32, memory::format::nchw);
-        auto y_md = memory::desc({ph.y_dims}, memory::data_type::f32, memory::format::nchw);
-
-        auto pool_d = pooling_forward::desc(forward_inference, pooling_max, x_md, y_md, ph.s_dims,
-                                                    ph.k_dims, ph.p_dims, ph.p_dims,
-                                                    padding_kind::zero);
-        auto pool_pd = pooling_forward::primitive_desc(pool_d, *ph.eng);
-
-        auto y_mem = memory(pool_pd.dst_primitive_desc(), y.block()->mutable_data());
+        auto y_mem = memory(ph.pool_fwd_pd->dst_primitive_desc(), y.block()->mutable_data());
         auto x_mem = memory({{{ph.x_dims}, memory::data_type::f32, memory::format::nchw}, *ph.eng},
                                     x.block()->mutable_data());
 
-        stream(stream::kind::eager).submit({pooling_forward(pool_pd, x_mem, y_mem)}).wait();
+        stream(stream::kind::eager).submit({pooling_forward(*ph.pool_fwd_pd, x_mem, y_mem, *ph.ws_mem)}).wait();
 
       }
       catch (mkldnn::error &e) {
@@ -102,44 +103,17 @@ PoolingHandle::~PoolingHandle(){
 
   in_grad.device()->Exec([&in_grad, &y, &x, &grad, &ph](Context *ctx) {
     try {
-
       using namespace mkldnn;
-
-      auto x_md = memory::desc({ph.x_dims}, memory::data_type::f32, memory::format::nchw);
-      auto y_md = memory::desc({ph.y_dims}, memory::data_type::f32, memory::format::nchw);
-
-
-      auto pool_fwd_d = pooling_forward::desc(forward_training, pooling_max, x_md, y_md, ph.s_dims, ph.k_dims, ph.p_dims, ph.p_dims, padding_kind::zero);
-      auto pool_fwd_pd = pooling_forward::primitive_desc(pool_fwd_d, *ph.eng);
-
-      auto y_mem = memory(pool_fwd_pd.dst_primitive_desc());
-      auto x_mem = memory({{{ph.x_dims}, memory::data_type::f32, memory::format::nchw}, *ph.eng},
-                                  x.block()->mutable_data());
-
-      y_mem.set_data_handle(y.block()->mutable_data());
-
-//    During training max pooling requires workspace on forward (mkldnn_forward_training) and backward
-//    (mkldnn_backward) passes to save indices where maximum was found. Workspace layout is opaque and
-//    the indices cannot be restored from it. However one can use backward pooling to perform up-sampling
-//    (used in some detection topologies).
-      auto pool_ws_d = pool_fwd_pd.workspace_primitive_desc();
-      auto ws_mem = memory(pool_ws_d);
-
-      stream(stream::kind::eager).submit({pooling_forward(pool_fwd_pd, x_mem, y_mem, ws_mem)}).wait();
-
-
-
-      auto pool_bwd_d = pooling_backward::desc(pooling_max, x_md, y_md, ph.s_dims, ph.k_dims, ph.p_dims, ph.p_dims,
+      auto pool_bwd_d = pooling_backward::desc(pooling_max, *ph.x_md, *ph.y_md, ph.s_dims, ph.k_dims, ph.p_dims, ph.p_dims,
                                                padding_kind::zero);
-
-      auto pool_bwd_pd = pooling_backward::primitive_desc(pool_bwd_d, *ph.eng, pool_fwd_pd);
+      auto pool_bwd_pd = pooling_backward::primitive_desc(pool_bwd_d, *ph.eng, *ph.pool_fwd_pd);
 
       auto dx_mem = memory({{{ph.x_dims}, memory::data_type::f32, memory::format::nchw}, *ph.eng},
                            in_grad.block()->mutable_data());
       auto dy_mem = memory({{{ph.y_dims}, memory::data_type::f32, memory::format::nchw}, *ph.eng},
                            grad.block()->mutable_data());
 
-      stream(stream::kind::eager).submit({pooling_backward(pool_bwd_pd, dy_mem, ws_mem, dx_mem)}).wait();
+      stream(stream::kind::eager).submit({pooling_backward(pool_bwd_pd, dy_mem, *ph.ws_mem, dx_mem)}).wait();
     }
     catch (mkldnn::error &e) {
       LOG(FATAL) << "MKLDNN pooling bwd" << "Status: " << e.status << " Message: " << e.message;
