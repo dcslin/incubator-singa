@@ -37,15 +37,16 @@ class BatchNormHandle {
   bool is_2d;
   //bool train = true;
 #ifdef USE_MKLDNN
-    mkldnn::memory::dims x_dims;
-    mkldnn::memory::dims y_dims;
+  mkldnn::memory::data_type dtype;
+  mkldnn::memory::dims x_dims;
+  mkldnn::memory::dims y_dims;
   mkldnn::engine *eng;
-    mkldnn::memory::desc *x_md ;
-     mkldnn::memory::desc *dx_md;
-    mkldnn::batch_normalization_forward::desc *bn_fwd_d;
-    mkldnn::batch_normalization_forward::primitive_desc *bn_fwd_pd;
-    float epsilon;
-    mkldnn::memory::format data_memory_format;
+  mkldnn::memory::desc *x_md ;
+  mkldnn::memory::desc *dx_md;
+  mkldnn::batch_normalization_forward::desc *bn_fwd_d;
+  mkldnn::batch_normalization_forward::primitive_desc *bn_fwd_pd;
+  float epsilon;
+  mkldnn::memory::format data_memory_format;
 #endif //USE_MKLDNN
 };
 

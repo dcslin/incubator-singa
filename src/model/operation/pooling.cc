@@ -7,6 +7,7 @@ PoolingHandle::PoolingHandle(const Tensor &input,
                              const std::vector<int>& kernel_size,
                              const std::vector<int>& stride, const std::vector<int>& padding,
                              const bool is_max) {
+
   kernel_h = kernel_size[0];
   kernel_w = kernel_size[1];
 
@@ -32,6 +33,7 @@ PoolingHandle::PoolingHandle(const Tensor &input,
 
 
 #ifdef USE_MKLDNN
+  dtype = GetMKLDNNDataType(input.data_type());
   x_dims = {batchsize, channels, height, width};
   y_dims = {batchsize, channels, pooled_height, pooled_width};
   s_dims = {stride};
@@ -39,8 +41,8 @@ PoolingHandle::PoolingHandle(const Tensor &input,
   p_dims = {padding};
   eng = new mkldnn::engine(mkldnn::engine::cpu, 0);
 
-  x_md = new mkldnn::memory::desc({x_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw);
-  y_md = new mkldnn::memory::desc({y_dims}, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw);
+  x_md = new mkldnn::memory::desc({x_dims}, dtype, mkldnn::memory::format::nchw);
+  y_md = new mkldnn::memory::desc({y_dims}, dtype, mkldnn::memory::format::nchw);
 
   pool_fwd_d = new mkldnn::pooling_forward::desc(mkldnn::forward_training, mkldnn::pooling_max, *x_md, *y_md, s_dims, k_dims, p_dims, p_dims, mkldnn::padding_kind::zero);
   pool_fwd_pd = new mkldnn::pooling_forward::primitive_desc(*pool_fwd_d, *eng);
@@ -60,6 +62,12 @@ PoolingHandle::PoolingHandle(const Tensor &input,
 PoolingHandle::~PoolingHandle(){
 #ifdef USE_MKLDNN
   delete(eng);
+  delete(x_md );
+  delete(y_md );
+  delete(pool_fwd_d );
+  delete(pool_fwd_pd );
+//  delete(pool_ws_d );
+  delete(ws_mem );
 #endif // USE_MKLDNN
 }
 
@@ -79,7 +87,7 @@ PoolingHandle::~PoolingHandle(){
         using namespace mkldnn;
 
         auto y_mem = memory(ph.pool_fwd_pd->dst_primitive_desc(), y.block()->mutable_data());
-        auto x_mem = memory({{{ph.x_dims}, memory::data_type::f32, memory::format::nchw}, *ph.eng},
+        auto x_mem = memory({{{ph.x_dims}, ph.dtype, memory::format::nchw}, *ph.eng},
                                     x.block()->mutable_data());
 
         stream(stream::kind::eager).submit({pooling_forward(*ph.pool_fwd_pd, x_mem, y_mem, *ph.ws_mem)}).wait();
@@ -101,14 +109,14 @@ PoolingHandle::~PoolingHandle(){
   Tensor in_grad;
   in_grad.ResetLike(x);
 
-  in_grad.device()->Exec([&in_grad, &y, &x, &grad, &ph](Context *ctx) {
+  in_grad.device()->Exec([&in_grad, &grad, &ph](Context *ctx) {
     try {
       using namespace mkldnn;
       auto pool_bwd_d = pooling_backward::desc(pooling_max, *ph.x_md, *ph.y_md, ph.s_dims, ph.k_dims, ph.p_dims, ph.p_dims,
                                                padding_kind::zero);
       auto pool_bwd_pd = pooling_backward::primitive_desc(pool_bwd_d, *ph.eng, *ph.pool_fwd_pd);
 
-      auto dx_mem = memory({{{ph.x_dims}, memory::data_type::f32, memory::format::nchw}, *ph.eng},
+      auto dx_mem = memory({{{ph.x_dims}, ph.dtype, memory::format::nchw}, *ph.eng},
                            in_grad.block()->mutable_data());
       auto dy_mem = memory({{{ph.y_dims}, memory::data_type::f32, memory::format::nchw}, *ph.eng},
                            grad.block()->mutable_data());

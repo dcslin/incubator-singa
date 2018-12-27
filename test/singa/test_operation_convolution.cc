@@ -26,14 +26,14 @@
 
 #include "gtest/gtest.h"
 
+using namespace singa;
 
-/*
 TEST(Operation_Convolution, Forward) {
   const size_t batch_size = 2, c = 1, h = 3, w = 3;
   const float x[batch_size * c * h * w] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f,
                                           7.0f, 8.0f, 9.0f, 1.0f, 2.0f, 3.0f,
                                           4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
-  singa::Tensor in(singa::Shape{batch_size, c, h, w});
+  Tensor in(Shape{batch_size, c, h, w});
   in.CopyDataFromHostPtr(x, batch_size * c * h * w);
 
   const size_t num_filters = 1;
@@ -46,16 +46,16 @@ TEST(Operation_Convolution, Forward) {
   const float we[num_filters * kernel_w * kernel_h] = {1.0f, 1.0f, 0.0f,
                                                        0.0f, 0.0f, -1.0f,
                                                        0.0f, 1.0f, 0.0f};
-  singa::Tensor weight(singa::Shape{num_filters, num_filters, 3, 3});
+  Tensor weight(Shape{num_filters, num_filters, 3, 3});
   weight.CopyDataFromHostPtr(we, num_filters * num_filters * kernel_w * kernel_h);
 
   const float b[num_filters] = {1.0f};
-  singa::Tensor bias(singa::Shape{num_filters});
+  Tensor bias(Shape{num_filters});
   bias.CopyDataFromHostPtr(b, num_filters);
 
 
-  singa::ConvHandle conv_handle(in, {kernel_w, kernel_h}, stride, padding, c, num_filters, bias_flag);
-  singa::Tensor out1 = singa::CpuConvForward(in, weight, bias, conv_handle);
+  ConvHandle conv_handle(in, {kernel_w, kernel_h}, stride, padding, c, num_filters, bias_flag);
+  Tensor out1 = CpuConvForward(in, weight, bias, conv_handle);
 
   const float *out_ptr1 = out1.data<float>();
   // Input: 3*3; kernel: 3*3; stride: 2*2; padding: 1*1.
@@ -70,13 +70,13 @@ TEST(Operation_Convolution, Forward) {
   EXPECT_EQ(-3.0f, out_ptr1[6]);
   EXPECT_EQ(12.0f, out_ptr1[7]);
 }
-*/
+
 TEST(Operation_Convolution, Backward) {
   const size_t batch_size = 2, c = 1, h = 3, w = 3;
   const float x[batch_size * c * h * w] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f,
                                            7.0f, 8.0f, 9.0f, 1.0f, 2.0f, 3.0f,
                                            4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
-  singa::Tensor in(singa::Shape{batch_size, c, h, w});
+  Tensor in(Shape{batch_size, c, h, w});
   in.CopyDataFromHostPtr(x, batch_size * c * h * w);
 
   const size_t num_filters = 1;
@@ -89,25 +89,25 @@ TEST(Operation_Convolution, Backward) {
   const float we[num_filters * kernel_w * kernel_h] = {1.0f, 1.0f, 0.0f,
                                                        0.0f, 0.0f, -1.0f,
                                                        0.0f, 1.0f, 0.0f};
-  singa::Tensor weight(singa::Shape{num_filters, num_filters, 3, 3});
+  Tensor weight(Shape{num_filters, num_filters, 3, 3});
   weight.CopyDataFromHostPtr(we, num_filters * num_filters * kernel_w * kernel_h);
 
   const float b[num_filters] = {1.0f};
-  singa::Tensor bias(singa::Shape{num_filters});
+  Tensor bias(Shape{num_filters});
   bias.CopyDataFromHostPtr(b, num_filters);
 
 
-  singa::ConvHandle conv_handle(in, {kernel_w, kernel_h}, stride, padding, c, num_filters, bias_flag);
-  singa::Tensor out1 = singa::CpuConvForward(in, weight, bias, conv_handle);
+  ConvHandle conv_handle(in, {kernel_w, kernel_h}, stride, padding, c, num_filters, bias_flag);
+  Tensor out1 = CpuConvForward(in, weight, bias, conv_handle);
 
   // grad
   const size_t grad_h = 2, grad_w = 2;
   const float dy[batch_size * num_filters * grad_h * grad_w] = {
       0.1f, 0.2f, 0.3f, 0.4f, 0.1f, 0.2f, 0.3f, 0.4f};
-  singa::Tensor grad(singa::Shape{batch_size, num_filters, grad_h, grad_w});
+  Tensor grad(Shape{batch_size, num_filters, grad_h, grad_w});
   grad.CopyDataFromHostPtr(dy, batch_size * num_filters * grad_h * grad_w);
 
-  singa::Tensor in_grad = singa::CpuConvBackwardx(grad, weight, in, conv_handle);
+  Tensor in_grad = CpuConvBackwardx(grad, weight, in, conv_handle);
 
   const float *dx = in_grad.data<float>();
   const float *wptr = we;
@@ -135,8 +135,8 @@ TEST(Operation_Convolution, Backward) {
   EXPECT_EQ(dy[6] * wptr[5] + dy[7] * wptr[3], dx[16]);
   EXPECT_EQ(dy[7] * wptr[4], dx[17]);
 
-  singa::Tensor dw = singa::CpuConvBackwardW(grad, in, weight, conv_handle);
-  singa::Tensor db = singa::CpuConvBackwardb(grad, bias, conv_handle);
+  Tensor dw = CpuConvBackwardW(grad, in, weight, conv_handle);
+  Tensor db = CpuConvBackwardb(grad, bias, conv_handle);
   const float *dbptr = db.data<float>();
   EXPECT_FLOAT_EQ(dy[0] + dy[1] + dy[2] + dy[3] + dy[4] + dy[5] + dy[6] + dy[7],
                   dbptr[0]);

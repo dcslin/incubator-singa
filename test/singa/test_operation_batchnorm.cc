@@ -22,8 +22,6 @@
 #include "../src/model/operation/batchnorm.h"
 #include "gtest/gtest.h"
 #include <iostream>
-#include <mkldnn.hpp>
-#include <mkldnn.h>
 
 using namespace singa;
 

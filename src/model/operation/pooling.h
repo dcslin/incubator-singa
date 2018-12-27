@@ -39,19 +39,20 @@ class PoolingHandle {
 
   bool is_max_pooling;
 #ifdef USE_MKLDNN
-    mkldnn::memory::dims x_dims ;
-    mkldnn::memory::dims y_dims ;
-    mkldnn::memory::dims s_dims ;
-    mkldnn::memory::dims k_dims ;
-    mkldnn::memory::dims p_dims ;
-    mkldnn::engine *eng;
+  mkldnn::memory::data_type dtype;
+  mkldnn::memory::dims x_dims ;
+  mkldnn::memory::dims y_dims ;
+  mkldnn::memory::dims s_dims ;
+  mkldnn::memory::dims k_dims ;
+  mkldnn::memory::dims p_dims ;
+  mkldnn::engine *eng;
 
-   const mkldnn::memory::desc *x_md ;
-   const mkldnn::memory::desc *y_md ;
-   const mkldnn::pooling_forward::desc *pool_fwd_d ;
-   const mkldnn::pooling_forward::primitive_desc *pool_fwd_pd ;
-   mkldnn::memory::primitive_desc *pool_ws_d ;
-   const mkldnn::memory *ws_mem ;
+  const mkldnn::memory::desc *x_md ;
+  const mkldnn::memory::desc *y_md ;
+  const mkldnn::pooling_forward::desc *pool_fwd_d ;
+  const mkldnn::pooling_forward::primitive_desc *pool_fwd_pd ;
+  mkldnn::memory::primitive_desc *pool_ws_d ;
+  const mkldnn::memory *ws_mem ;
 #endif // USE_MKLDNN
 };
 

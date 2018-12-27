@@ -21,23 +21,21 @@
 #include "../src/model/operation/pooling.h"
 
 #include "gtest/gtest.h"
-//#include <mkldnn.hpp>
 
-//using singa::Pooling;
-//using singa::Shape;
 using namespace singa;
 
+#ifdef USE_MKLDNN
 TEST(OperationPooling, Forward) {
   const size_t batchsize = 2, c = 1, h = 3, w = 3;
   const float x[batchsize * c * h * w] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f,
                                           7.0f, 8.0f, 9.0f, 1.0f, 2.0f, 3.0f,
                                           4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
-  singa::Tensor in(singa::Shape{batchsize, c, h, w});
+  Tensor in(Shape{batchsize, c, h, w});
   in.CopyDataFromHostPtr(x, batchsize * c * h * w);
 
 
-  singa::PoolingHandle pool_handle(in, {2, 2}, {1,1}, {0,0}, true);
-  singa::Tensor out1 = singa::CpuPoolingForward(pool_handle, in);
+  PoolingHandle pool_handle(in, {2, 2}, {1,1}, {0,0}, true);
+  Tensor out1 = CpuPoolingForward(pool_handle, in);
 
   // Parameter "flag" does not influence pooling
   const float *outptr1 = out1.data<float>();
@@ -61,24 +59,22 @@ TEST(OperationPooling, Backward) {
   const float x[batchsize * c * src_h * src_w] = {
       1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f,
       1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
-  singa::Tensor in(singa::Shape{batchsize, c, src_h, src_w});
+  Tensor in(Shape{batchsize, c, src_h, src_w});
   in.CopyDataFromHostPtr(x, batchsize * c * src_h * src_w);
 
 
-  singa::PoolingHandle pool_handle(in, {2, 2}, {1,1}, {0,0}, true);
-//  singa::Tensor y(Shape{2, 1, 2, 2});
-//  singa::Tensor in_grad(Shape{2, 1, 3, 3});
+  PoolingHandle pool_handle(in, {2, 2}, {1,1}, {0,0}, true);
 
-  singa::Tensor out = singa::CpuPoolingForward(pool_handle, in);
+  Tensor out = CpuPoolingForward(pool_handle, in);
 
   // grad - bwd
   const size_t grad_h = 2, grad_w = 2;
   const float dy[batchsize * c * grad_h * grad_w] = {0.1f, 0.2f, 0.3f, 0.4f,
                                                      0.1f, 0.2f, 0.3f, 0.4f};
-  singa::Tensor grad(singa::Shape{batchsize, c, grad_h, grad_w});
+  Tensor grad(Shape{batchsize, c, grad_h, grad_w});
   grad.CopyDataFromHostPtr(dy, batchsize * c * grad_h * grad_w);
 
-  singa::Tensor in_grad = singa::CpuPoolingBackward(pool_handle, grad, in, out);
+  Tensor in_grad = CpuPoolingBackward(pool_handle, grad, in, out);
 
 
   const float *dx = in_grad.data<float>();
@@ -102,3 +98,4 @@ TEST(OperationPooling, Backward) {
   EXPECT_EQ(0.3f, dx[16]);
   EXPECT_EQ(0.4f, dx[17]);
 }
+#endif // USE_MKLDNN

@@ -51,6 +51,7 @@ public:
   size_t imagesize;
 
 #ifdef USE_MKLDNN
+  mkldnn::memory::data_type dtype;
   mkldnn::memory::dims b_dims;
   mkldnn::memory::dims s_dims;
   mkldnn::memory::dims p_dims;

@@ -18,27 +18,25 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
     LOG(FATAL) << "The dimension of input should either be 4D or 2D.";
   }
 
+
 #ifdef USE_MKLDNN
+  dtype = GetMKLDNNDataType(input.data_type());
   epsilon =1e-5f;
   data_memory_format = is_2d ? mkldnn::memory::format::nc : mkldnn::memory::format::nchw;
-if (is_2d) {
-//  x_dims = {(int)batchsize, (int)channels} ;
-  x_dims = {(int)batchsize, (int)channels} ;
-  y_dims = {(int)batchsize, (int)channels} ;
-}
-else {
-  x_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
-  y_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
-
-}
+  if (is_2d) {
+    x_dims = {(int)batchsize, (int)channels} ;
+    y_dims = {(int)batchsize, (int)channels} ;
+  }
+  else {
+    x_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
+    y_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
+  }
   eng = new mkldnn::engine(mkldnn::engine::cpu, 0);
-  x_md = new mkldnn::memory::desc(x_dims, mkldnn::memory::data_type::f32, data_memory_format);
-  dx_md = new mkldnn::memory::desc(x_dims, mkldnn::memory::data_type::f32, data_memory_format);
+  x_md = new mkldnn::memory::desc(x_dims, dtype, data_memory_format);
+  dx_md = new mkldnn::memory::desc(x_dims, dtype, data_memory_format);
   bn_fwd_d = new mkldnn::batch_normalization_forward::desc(mkldnn::forward_training, *x_md, epsilon,
                                                            mkldnn::use_scale_shift);
   bn_fwd_pd = new mkldnn::batch_normalization_forward::primitive_desc(*bn_fwd_d, *eng);
-
-
 #endif // USE_MKLDNN
 
 };
@@ -65,26 +63,25 @@ else {
     Tensor w = get_bn_weight_from_scale_bias(bnScale, bnBias);
 
     y.device()->Exec([&y, &x, &w, &bnh](Context *ctx) {
+      try {
+        using namespace mkldnn;
+        // examples of  mkldnn batch norm: https://github.com/intel/mkl-dnn/issues/367
+        auto x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng}, x.block()->mutable_data());
+        auto y_mem = memory({{{bnh.y_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng}, y.block()->mutable_data());
 
-    InitLogging("");
-    try {
-      using namespace mkldnn;
-      // examples of  mkldnn batch norm: https://github.com/intel/mkl-dnn/issues/367
-      auto x_mem = memory({{{bnh.x_dims}, memory::data_type::f32, bnh.data_memory_format}, *bnh.eng}, x.block()->mutable_data());
-      auto y_mem = memory({{{bnh.y_dims}, memory::data_type::f32, bnh.data_memory_format}, *bnh.eng}, y.block()->mutable_data());
+        auto bn_fwd_d = batch_normalization_forward::desc(forward_inference, *bnh.x_md, bnh.epsilon, use_scale_shift);
+        auto bn_fwd_pd = batch_normalization_forward::primitive_desc(bn_fwd_d, *bnh.eng);
 
-      auto bn_fwd_d = batch_normalization_forward::desc(forward_inference, *bnh.x_md, bnh.epsilon, use_scale_shift);
-      auto bn_fwd_pd = batch_normalization_forward::primitive_desc(bn_fwd_d, *bnh.eng);
+        auto w_mem = memory(bn_fwd_pd.weights_primitive_desc(), w.block()->mutable_data());
 
-      auto w_mem = memory(bn_fwd_pd.weights_primitive_desc(), w.block()->mutable_data());
+        auto bn = batch_normalization_forward(bn_fwd_pd, x_mem, w_mem, y_mem);
 
-      auto bn = batch_normalization_forward(bn_fwd_pd, x_mem, w_mem, y_mem);
-
-      stream(stream::kind::eager).submit({bn}).wait();
-    }
-    catch (mkldnn::error &e) {
-      LOG(FATAL) << "MKLDNN Batch Norm" << "Status: " << e.status << " Message: " << e.message;
-    }
+        stream(stream::kind::eager).submit({bn}).wait();
+      }
+      catch (mkldnn::error &e) {
+        InitLogging("");
+        LOG(FATAL) << "MKLDNN Batch Norm" << "Status: " << e.status << " Message: " << e.message;
+      }
 
     }, {x.block()}, {y.block()});
 
@@ -109,36 +106,35 @@ else {
     Tensor w = get_bn_weight_from_scale_bias(bnScale, bnBias);
 
     y.device()->Exec([&x, &y, &mean, &var, &w, &bnh](Context *ctx) {
+      try {
+        using namespace mkldnn;
 
-                       try {
-                         using namespace mkldnn;
+        auto x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng},
+                            x.block()->mutable_data());
+        auto y_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng},
+                            y.block()->mutable_data());
+        auto m_mem = memory(bnh.bn_fwd_pd->mean_primitive_desc(), mean.block()->mutable_data());
 
-                         auto x_mem = memory({{{bnh.x_dims}, memory::data_type::f32, bnh.data_memory_format}, *bnh.eng},
-                                             x.block()->mutable_data());
-                         auto y_mem = memory({{{bnh.x_dims}, memory::data_type::f32, bnh.data_memory_format}, *bnh.eng},
-                                             y.block()->mutable_data());
-                         auto m_mem = memory(bnh.bn_fwd_pd->mean_primitive_desc(), mean.block()->mutable_data());
+        auto v_mem = memory(bnh.bn_fwd_pd->variance_primitive_desc(), var.block()->mutable_data());
 
-                         auto v_mem = memory(bnh.bn_fwd_pd->variance_primitive_desc(), var.block()->mutable_data());
+        auto w_mem = memory(bnh.bn_fwd_pd->weights_primitive_desc(),w.block()->mutable_data());
 
-                         auto w_mem = memory(bnh.bn_fwd_pd->weights_primitive_desc(),w.block()->mutable_data());
+        auto bn_fwd = batch_normalization_forward(*bnh.bn_fwd_pd, x_mem, w_mem, y_mem, m_mem, v_mem);
 
-                         auto bn_fwd = batch_normalization_forward(*bnh.bn_fwd_pd, x_mem, w_mem, y_mem, m_mem, v_mem);
+        stream(stream::kind::eager).submit({bn_fwd}).wait();
+      }
+      catch (mkldnn::error &e) {
+        singa::InitLogging("");
+        LOG(FATAL) << "MKLDNN Batch Norm Backward" << "Status: " << e.status << " Message: " << e.message;
+      }
+    }, {x.block()}, {y.block(), mean.block(), var.block()});
 
-                         stream(stream::kind::eager).submit({bn_fwd}).wait();
-                       }
-                       catch (mkldnn::error &e) {
-                         singa::InitLogging("");
-                         LOG(FATAL) << "MKLDNN Batch Norm Backward" << "Status: " << e.status << " Message: " << e.message;
-                       }
-
-                     }, {x.block()},
-                     {y.block(), mean.block(), var.block()});
 
     // local implemented running mean as mkldnn does not support it out of the box yet:
     // https://github.com/intel/mkl-dnn/issues/371
     running_mean = running_mean*bnh.factor + mean*(1-bnh.factor);
     running_var = running_var*bnh.factor + var*(1-bnh.factor);
+
 
     return {y, running_mean, running_var};
 
@@ -149,7 +145,6 @@ const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
                         const Tensor &x, //const Tensor &dx,
                         const Tensor &bnScale, const Tensor &bnBias,
                         const Tensor &mean, const Tensor &var){
-
   Tensor dx;
   dx.ResetLike(dy);
 
@@ -163,10 +158,10 @@ const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
     try {
       using namespace mkldnn;
 
-      auto  x_mem = memory({{{bnh.x_dims}, memory::data_type::f32, bnh.data_memory_format}, *bnh.eng},  x.block()->mutable_data());
-      auto dx_mem = memory({{{bnh.x_dims}, memory::data_type::f32, bnh.data_memory_format}, *bnh.eng}, dx.block()->mutable_data());
-      auto  y_mem = memory({{{bnh.x_dims}, memory::data_type::f32, bnh.data_memory_format}, *bnh.eng},  y.block()->mutable_data());
-      auto dy_mem = memory({{{bnh.x_dims}, memory::data_type::f32, bnh.data_memory_format}, *bnh.eng}, dy.block()->mutable_data());
+      auto  x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng},  x.block()->mutable_data());
+      auto dx_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng}, dx.block()->mutable_data());
+      auto  y_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng},  y.block()->mutable_data());
+      auto dy_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng}, dy.block()->mutable_data());
 
       auto m_mem = memory(bnh.bn_fwd_pd->mean_primitive_desc(), mean.block()->mutable_data());
       auto v_mem = memory(bnh.bn_fwd_pd->variance_primitive_desc(), var.block()->mutable_data());
