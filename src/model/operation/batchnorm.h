@@ -11,6 +11,14 @@
 
 #ifdef USE_MKLDNN
 #include <mkldnn.hpp>
+
+static inline singa::Tensor get_bn_weight_from_scale_bias(const singa::Tensor &s, const singa::Tensor &b) {
+  singa::Tensor w(singa::Shape{s.Size(),b.Size()});
+  CopyDataToFrom(&w, s,s.Size(),0,0);
+  CopyDataToFrom(&w, b,b.Size(),s.Size(),0);
+  return w;
+}
+
 #endif // USE_MKLDNN
 
 namespace singa {
@@ -37,6 +45,7 @@ class BatchNormHandle {
     mkldnn::batch_normalization_forward::desc *bn_fwd_d;
     mkldnn::batch_normalization_forward::primitive_desc *bn_fwd_pd;
     float epsilon;
+    mkldnn::memory::format data_memory_format;
 #endif //USE_MKLDNN
 };
 

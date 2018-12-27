@@ -29,14 +29,10 @@ using namespace singa;
 
 #ifdef USE_MKLDNN
 
-TEST(OperationBatchNorm, Forward) {
+TEST(OperationBatchNorm, ForwardInference) {
   const float x_data[] = {1, 2, 3, 4};
   Tensor in(Shape{2, 2});
   in.CopyDataFromHostPtr(x_data, 2 * 2);
-
-//  const float y_data[] = {9, 9, 9, 9};
-//  Tensor y(Shape{2, 2});
-//  y.CopyDataFromHostPtr(y_data, 2 * 2);
 
   const float alpha_[] = {1, 1};
   Tensor alpha(Shape{2});
@@ -50,9 +46,9 @@ TEST(OperationBatchNorm, Forward) {
   Tensor moving_var(Shape{});
 
 
+  // momentum
   BatchNormHandle batch_norm_handle(1u,in);
   Tensor y = CpuBatchNormForwardInference(batch_norm_handle, in, alpha, beta, moving_mean,moving_var);
-
 
 
   const float *outptr = y.data<float>();
@@ -71,10 +67,6 @@ TEST(OperationBatchNorm, Backward) {
   Tensor x(Shape{2, 2});
   x.CopyDataFromHostPtr(x_data, 2 * 2);
 
-//  const float dx_data[] = {9, 9, 9, 9};
-//  Tensor dx(Shape{2, 2});
-//  dx.CopyDataFromHostPtr(dx_data, 2 * 2);
-
   const float y_data[] = {9, 9, 9, 9};
   Tensor y(Shape{2, 2});
   y.CopyDataFromHostPtr(y_data, 2 * 2);
@@ -91,42 +83,41 @@ TEST(OperationBatchNorm, Backward) {
   Tensor beta(Shape{2});
   beta.CopyDataFromHostPtr(beta_, 2);
 
-//  Tensor dw(Shape{2, 2});
-//  dw.CopyDataFromHostPtr(y_data, 2 * 2);
 
-
-  singa::BatchNormHandle batch_norm_handle(0.0f,x);
-  const float running_mean_[] = {0,0};
+  // 0 momentum will ignore running mean and var
+  BatchNormHandle batch_norm_handle(0.0f,x);
+  const float running_mean_[] = {1,2};
   Tensor running_mean(Shape{2});
   Tensor running_var(Shape{2});
   running_mean.CopyDataFromHostPtr(running_mean_, 2);
   running_var.CopyDataFromHostPtr(running_mean_, 2);
 
-  auto ret0 = CpuBatchNormForwardTraining(batch_norm_handle, x, alpha, beta, running_mean, running_var);
 
+  // training operation calculate the running mean and var for backward
+  auto ret1 = CpuBatchNormForwardTraining(batch_norm_handle, x, alpha, beta, running_mean, running_var);
 
-  Tensor bnScale, bnBias;
-  auto  ret =  CpuBatchNormBackwardx( batch_norm_handle, y, dy, x, bnScale,  bnBias, ret0[1],  ret0[2]);
+  // calculate dx, dscale, dbias
+  auto ret2 = CpuBatchNormBackwardx( batch_norm_handle, y, dy, x, alpha, beta, ret1[1],  ret1[2]);
 
-  const auto &shape = ret[0].shape();
+  const auto &shape = ret2[0].shape();
   EXPECT_EQ(2u, shape.size());
   EXPECT_EQ(2u, shape[0]);
   EXPECT_EQ(2u, shape[1]);
-  const float *dxptr = ret[0].data<float>();
+  const float *dxptr = ret2[0].data<float>();
   EXPECT_NEAR(.0f, dxptr[0], 1e-4f);
   EXPECT_NEAR(.0f, dxptr[1], 1e-4f);
   EXPECT_NEAR(.0f, dxptr[2], 1e-4f);
   EXPECT_NEAR(.0f, dxptr[3], 1e-4f);
 
 
-  const auto &dbnScaleShape = ret[1].shape();
+  const auto &dbnScaleShape = ret2[1].shape();
   EXPECT_EQ(2u, dbnScaleShape[1]);
-  const auto &dbnBiasShape = ret[2].shape();
+  const auto &dbnBiasShape = ret2[2].shape();
   EXPECT_EQ(2u, dbnBiasShape[1]);
-  const float *dbnScaleptr = ret[1].data<float>();
+  const float *dbnScaleptr = ret2[1].data<float>();
   EXPECT_NEAR(-2.0f, dbnScaleptr[0], 1e-4f);
   EXPECT_NEAR(-2.0f, dbnScaleptr[1], 1e-4f);
-  const float *dbnBiasptr = ret[2].data<float>();
+  const float *dbnBiasptr = ret2[2].data<float>();
   EXPECT_NEAR(6.0f, dbnBiasptr[0], 1e-4f);
   EXPECT_NEAR(4.0f, dbnBiasptr[1], 1e-4f);
 }

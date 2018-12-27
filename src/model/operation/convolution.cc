@@ -1,7 +1,6 @@
 #include "./convolution.h"
 #include "../layer/convolution.h"
 
-
 namespace singa {
 
 ConvHandle::ConvHandle(const Tensor &input,
@@ -55,8 +54,10 @@ ConvHandle::ConvHandle(const Tensor &input,
   b_md = new mkldnn::memory::desc( b_dims, mkldnn::memory::data_type::f32, mkldnn::memory::format::x);
   y_md = new mkldnn::memory::desc( o_dims, mkldnn::memory::data_type::f32, mkldnn::memory::format::nchw);
 
+  // TODO(shicong): add to device
   engine = new mkldnn::engine(mkldnn::engine::cpu, 0);
 
+  // convolution forward primitive descriptor is shared between forward and backward process
   conv_d = new mkldnn::convolution_forward::desc(
       mkldnn::prop_kind::forward_inference, mkldnn::convolution_direct, *x_md,
       *w_md, *b_md, *y_md, s_dims,
