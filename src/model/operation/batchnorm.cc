@@ -57,8 +57,10 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
   Tensor CpuBatchNormForwardInference(const BatchNormHandle &bnh, const Tensor& x, const Tensor& bnScale, const Tensor& bnBias,
                                                         Tensor& running_mean, Tensor& running_var){
 
+    CHECK_EQ(x.device()->lang(), kCpp);
     Tensor y;
     y.ResetLike(x);
+
 
     Tensor w = get_bn_weight_from_scale_bias(bnScale, bnBias);
 
