@@ -31,12 +31,13 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
     x_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
     y_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
   }
-  eng = new mkldnn::engine(mkldnn::engine::cpu, 0);
+
+  auto eng = *input.device()->context(0)->engine;
   x_md = new mkldnn::memory::desc(x_dims, dtype, data_memory_format);
   dx_md = new mkldnn::memory::desc(x_dims, dtype, data_memory_format);
   bn_fwd_d = new mkldnn::batch_normalization_forward::desc(mkldnn::forward_training, *x_md, epsilon,
                                                            mkldnn::use_scale_shift);
-  bn_fwd_pd = new mkldnn::batch_normalization_forward::primitive_desc(*bn_fwd_d, *eng);
+  bn_fwd_pd = new mkldnn::batch_normalization_forward::primitive_desc(*bn_fwd_d, eng);
 #endif // USE_MKLDNN
 
 };
@@ -44,7 +45,6 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
 
   BatchNormHandle::~BatchNormHandle() {
 #ifdef USE_MKLDNN
-    delete (eng);
     delete (x_md);
     delete (dx_md);
     delete (bn_fwd_d);
@@ -66,13 +66,14 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
 
     y.device()->Exec([&y, &x, &w, &bnh](Context *ctx) {
       try {
+        auto eng = *ctx->engine;
         using namespace mkldnn;
         // examples of  mkldnn batch norm: https://github.com/intel/mkl-dnn/issues/367
-        auto x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng}, x.block()->mutable_data());
-        auto y_mem = memory({{{bnh.y_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng}, y.block()->mutable_data());
+        auto x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng}, x.block()->mutable_data());
+        auto y_mem = memory({{{bnh.y_dims}, bnh.dtype, bnh.data_memory_format}, eng}, y.block()->mutable_data());
 
         auto bn_fwd_d = batch_normalization_forward::desc(forward_inference, *bnh.x_md, bnh.epsilon, use_scale_shift);
-        auto bn_fwd_pd = batch_normalization_forward::primitive_desc(bn_fwd_d, *bnh.eng);
+        auto bn_fwd_pd = batch_normalization_forward::primitive_desc(bn_fwd_d, eng);
 
         auto w_mem = memory(bn_fwd_pd.weights_primitive_desc(), w.block()->mutable_data());
 
@@ -109,11 +110,12 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
 
     y.device()->Exec([&x, &y, &mean, &var, &w, &bnh](Context *ctx) {
       try {
+        auto eng = *ctx->engine;
         using namespace mkldnn;
 
-        auto x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng},
+        auto x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng},
                             x.block()->mutable_data());
-        auto y_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng},
+        auto y_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng},
                             y.block()->mutable_data());
         auto m_mem = memory(bnh.bn_fwd_pd->mean_primitive_desc(), mean.block()->mutable_data());
 
@@ -158,12 +160,13 @@ const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
   dx.device()->Exec([&dw, &x, &dx, &y, &dy, &w, &mean, &var, &bnh](Context *ctx) {
 
     try {
+      auto eng = *ctx->engine;
       using namespace mkldnn;
 
-      auto  x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng},  x.block()->mutable_data());
-      auto dx_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng}, dx.block()->mutable_data());
-      auto  y_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng},  y.block()->mutable_data());
-      auto dy_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, *bnh.eng}, dy.block()->mutable_data());
+      auto  x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng},  x.block()->mutable_data());
+      auto dx_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng}, dx.block()->mutable_data());
+      auto  y_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng},  y.block()->mutable_data());
+      auto dy_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng}, dy.block()->mutable_data());
 
       auto m_mem = memory(bnh.bn_fwd_pd->mean_primitive_desc(), mean.block()->mutable_data());
       auto v_mem = memory(bnh.bn_fwd_pd->variance_primitive_desc(), var.block()->mutable_data());
@@ -171,7 +174,7 @@ const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
 
 
       auto bn_bwd_d = batch_normalization_backward::desc(backward, *bnh.dx_md, *bnh.x_md, bnh.epsilon, use_scale_shift);
-      auto bn_bwd_pd = batch_normalization_backward::primitive_desc(bn_bwd_d, *bnh.eng, *bnh.bn_fwd_pd);
+      auto bn_bwd_pd = batch_normalization_backward::primitive_desc(bn_bwd_d, eng, *bnh.bn_fwd_pd);
 
 
       auto dw_mem = memory(bn_bwd_pd.diff_weights_primitive_desc());

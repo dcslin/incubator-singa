@@ -145,7 +145,7 @@ extern std::shared_ptr<Device> defaultDevice;
 /// It runs cpp code.
 class CppCPU : public Device {
  public:
-  ~CppCPU() {};
+  ~CppCPU();
   CppCPU();
 
   std::shared_ptr<Device> host() const override { return defaultDevice;}

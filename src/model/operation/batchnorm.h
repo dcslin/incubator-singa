@@ -40,7 +40,6 @@ class BatchNormHandle {
   mkldnn::memory::data_type dtype;
   mkldnn::memory::dims x_dims;
   mkldnn::memory::dims y_dims;
-  mkldnn::engine *eng;
   mkldnn::memory::desc *x_md ;
   mkldnn::memory::desc *dx_md;
   mkldnn::batch_normalization_forward::desc *bn_fwd_d;

@@ -52,11 +52,17 @@ CppCPU::CppCPU() : Device(-1, 1) {
   lang_ = kCpp;
   // TODO(shicong): free engine, stream
 #ifdef USE_MKLDNN
-  MKL_CHECK(mkldnn_engine_create(&ctx_.engine, mkldnn_cpu, 0));
-  MKL_CHECK(mkldnn_stream_create(&ctx_.stream, mkldnn_eager));
+  ctx_.engine = new mkldnn::engine(mkldnn::engine::cpu, 0);
 #endif //USE_MKLDNN
   //host_ = nullptr;
 }
+
+CppCPU::~CppCPU() {
+#ifdef USE_MKLDNN
+  delete(ctx_.engine);
+#endif //USE_MKLDNN
+
+};
 
 void CppCPU::SetRandSeed(unsigned seed) {
   ctx_.random_generator.seed(seed);

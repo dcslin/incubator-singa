@@ -63,7 +63,6 @@ public:
   mkldnn::memory::desc *w_md;
   mkldnn::memory::desc *b_md;
   mkldnn::memory::desc *y_md;
-  mkldnn::engine *engine;
   mkldnn::convolution_forward::desc *conv_d;
   mkldnn::convolution_forward::primitive_desc *conv_pd;
 

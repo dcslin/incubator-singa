@@ -39,13 +39,14 @@ PoolingHandle::PoolingHandle(const Tensor &input,
   s_dims = {stride};
   k_dims = {kernel_size};
   p_dims = {padding};
-  eng = new mkldnn::engine(mkldnn::engine::cpu, 0);
 
+  auto eng = *input.device()->context(0)->engine;
   x_md = new mkldnn::memory::desc({x_dims}, dtype, mkldnn::memory::format::nchw);
   y_md = new mkldnn::memory::desc({y_dims}, dtype, mkldnn::memory::format::nchw);
 
-  pool_fwd_d = new mkldnn::pooling_forward::desc(mkldnn::forward_training, mkldnn::pooling_max, *x_md, *y_md, s_dims, k_dims, p_dims, p_dims, mkldnn::padding_kind::zero);
-  pool_fwd_pd = new mkldnn::pooling_forward::primitive_desc(*pool_fwd_d, *eng);
+  pool_fwd_d = new mkldnn::pooling_forward::desc(mkldnn::forward_training, mkldnn::pooling_max, *x_md, *y_md, s_dims,
+                                                 k_dims, p_dims, p_dims, mkldnn::padding_kind::zero);
+  pool_fwd_pd = new mkldnn::pooling_forward::primitive_desc(*pool_fwd_d, eng);
 
   // TODO(shicong):fix this
   auto a = pool_fwd_pd->workspace_primitive_desc();
@@ -61,49 +62,49 @@ PoolingHandle::PoolingHandle(const Tensor &input,
 
 PoolingHandle::~PoolingHandle(){
 #ifdef USE_MKLDNN
-  delete(eng);
   delete(x_md );
   delete(y_md );
   delete(pool_fwd_d );
   delete(pool_fwd_pd );
-//  delete(pool_ws_d );
   delete(ws_mem );
 #endif // USE_MKLDNN
 }
 
 #ifdef USE_MKLDNN
 
-  Tensor CpuPoolingForward(const PoolingHandle &ph, const Tensor &x) {
+Tensor CpuPoolingForward(const PoolingHandle &ph, const Tensor &x) {
 
 
-    Tensor y({(unsigned long)ph.batchsize, (unsigned long)ph.channels, (unsigned long)ph.pooled_height, (unsigned long)ph.pooled_width},x.device(), x.data_type());
+  Tensor y({(unsigned long) ph.batchsize, (unsigned long) ph.channels, (unsigned long) ph.pooled_height,
+            (unsigned long) ph.pooled_width}, x.device(), x.data_type());
 
 
-    y.device()->Exec([&y, &x, &ph](Context *ctx) {
+  y.device()->Exec([&y, &x, &ph](Context *ctx) {
 
 
-      try {
+    try {
 
-        using namespace mkldnn;
+      auto eng = *ctx->engine;
+      using namespace mkldnn;
 
-        auto y_mem = memory(ph.pool_fwd_pd->dst_primitive_desc(), y.block()->mutable_data());
-        auto x_mem = memory({{{ph.x_dims}, ph.dtype, memory::format::nchw}, *ph.eng},
-                                    x.block()->mutable_data());
+      auto y_mem = memory(ph.pool_fwd_pd->dst_primitive_desc(), y.block()->mutable_data());
+      auto x_mem = memory({{{ph.x_dims}, ph.dtype, memory::format::nchw}, eng},
+                          x.block()->mutable_data());
 
-        stream(stream::kind::eager).submit({pooling_forward(*ph.pool_fwd_pd, x_mem, y_mem, *ph.ws_mem)}).wait();
+      stream(stream::kind::eager).submit({pooling_forward(*ph.pool_fwd_pd, x_mem, y_mem, *ph.ws_mem)}).wait();
 
-      }
-      catch (mkldnn::error &e) {
-        LOG(FATAL) << "MKLDNN pooling fwd" << "Status: " << e.status << " Message: " << e.message;
-      }
+    }
+    catch (mkldnn::error &e) {
+      LOG(FATAL) << "MKLDNN pooling fwd" << "Status: " << e.status << " Message: " << e.message;
+    }
 
-    }, {x.block()}, {y.block()});
+  }, {x.block()}, {y.block()});
 
-    return y;
+  return y;
 
-  }
+}
 
-  Tensor CpuPoolingBackward(const PoolingHandle &ph, const Tensor &grad, const Tensor &x, const Tensor &y) {
+Tensor CpuPoolingBackward(const PoolingHandle &ph, const Tensor &grad, const Tensor &x, const Tensor &y) {
 
 
   Tensor in_grad;
@@ -111,14 +112,16 @@ PoolingHandle::~PoolingHandle(){
 
   in_grad.device()->Exec([&in_grad, &grad, &ph](Context *ctx) {
     try {
+      auto eng = *ctx->engine;
       using namespace mkldnn;
-      auto pool_bwd_d = pooling_backward::desc(pooling_max, *ph.x_md, *ph.y_md, ph.s_dims, ph.k_dims, ph.p_dims, ph.p_dims,
+      auto pool_bwd_d = pooling_backward::desc(pooling_max, *ph.x_md, *ph.y_md, ph.s_dims, ph.k_dims, ph.p_dims,
+                                               ph.p_dims,
                                                padding_kind::zero);
-      auto pool_bwd_pd = pooling_backward::primitive_desc(pool_bwd_d, *ph.eng, *ph.pool_fwd_pd);
+      auto pool_bwd_pd = pooling_backward::primitive_desc(pool_bwd_d, eng, *ph.pool_fwd_pd);
 
-      auto dx_mem = memory({{{ph.x_dims}, ph.dtype, memory::format::nchw}, *ph.eng},
+      auto dx_mem = memory({{{ph.x_dims}, ph.dtype, memory::format::nchw}, eng},
                            in_grad.block()->mutable_data());
-      auto dy_mem = memory({{{ph.y_dims}, memory::data_type::f32, memory::format::nchw}, *ph.eng},
+      auto dy_mem = memory({{{ph.y_dims}, memory::data_type::f32, memory::format::nchw}, eng},
                            grad.block()->mutable_data());
 
       stream(stream::kind::eager).submit({pooling_backward(pool_bwd_pd, dy_mem, *ph.ws_mem, dx_mem)}).wait();
@@ -127,11 +130,11 @@ PoolingHandle::~PoolingHandle(){
       LOG(FATAL) << "MKLDNN pooling bwd" << "Status: " << e.status << " Message: " << e.message;
     }
 
-  }, {x.block(), y.block(), grad.block() }, {in_grad.block()});
+  }, {x.block(), y.block(), grad.block()}, {in_grad.block()});
 
   return in_grad;
 
-  }
+}
 
 #endif
 

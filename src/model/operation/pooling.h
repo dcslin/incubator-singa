@@ -45,7 +45,6 @@ class PoolingHandle {
   mkldnn::memory::dims s_dims ;
   mkldnn::memory::dims k_dims ;
   mkldnn::memory::dims p_dims ;
-  mkldnn::engine *eng;
 
   const mkldnn::memory::desc *x_md ;
   const mkldnn::memory::desc *y_md ;

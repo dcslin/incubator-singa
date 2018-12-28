@@ -40,7 +40,6 @@
 #endif  // USE_OPENCL
 
 #ifdef USE_MKLDNN
-//#include <mkldnn.h>
 #include <mkldnn.hpp>
 #endif  // USE_MKLDNN
 
@@ -117,8 +116,7 @@ typedef struct _Context {
 #endif
 
 #ifdef USE_MKLDNN
-  mkldnn_engine_t engine;
-  mkldnn_stream_t stream;
+  mkldnn::engine *engine;
 #endif  // USE_MKLDNN
 
 } Context;
