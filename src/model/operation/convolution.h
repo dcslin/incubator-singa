@@ -66,6 +66,8 @@ public:
   mkldnn::engine *engine;
   mkldnn::convolution_forward::desc *conv_d;
   mkldnn::convolution_forward::primitive_desc *conv_pd;
+
+  Tensor *db;
 #endif // USE_MKLDNN
 };
 

@@ -65,6 +65,9 @@ ConvHandle::ConvHandle(const Tensor &input,
       p_dims, p_dims, mkldnn::padding_kind::zero);
   conv_pd = new mkldnn::convolution_forward::primitive_desc(*conv_d, *engine);
 
+  // mkldnn calculate dw and db in one go, a workaround to be compatible with singa api
+  db = new Tensor(Shape{num_filters}, input.device(), input.data_type() );
+
 #endif // USE_MKLDNN
 }
 
@@ -77,6 +80,7 @@ ConvHandle::~ConvHandle() {
   delete(engine);
   delete(conv_d);
   delete(conv_pd);
+  delete(db);
 #endif // USE_MKLDNN
 }
 
@@ -248,12 +252,12 @@ Tensor CpuConvBackwardW(const Tensor &dy, const Tensor &x, const Tensor &W,
   Tensor dW;
   dW.ResetLike(W);
 
-  Tensor db;
-  db.ResetLike(W);
-  db.SetShape({ch.num_filters});
+//  Tensor db;
+//  db.ResetLike(W);
+//  db.SetShape({ch.num_filters});
 
-  dy.device()->Exec([&x, &dy, &dW, &db, &ch](Context * ctx) {
-    Block *dwblock = dW.block(), *dyblock = dy.block(), *inblock = x.block(), *dbblock=db.block();
+  dy.device()->Exec([&x, &dy, &dW, &ch](Context * ctx) {
+    Block *dwblock = dW.block(), *dyblock = dy.block(), *inblock = x.block(), *dbblock=ch.db->block();
 
     using namespace mkldnn;
 
@@ -312,6 +316,14 @@ Tensor CpuConvBackwardb(const Tensor &dy, const Tensor &b,
 
   CHECK(b.shape(0) == ch.num_filters) << "bias shape should not change";
 
+#ifdef USE_MKLDNN
+  singa::InitLogging("");
+  LOG(INFO) << "cpu conv backward dw backed by MKLDNN";
+
+  Tensor db = ch.db->Clone();
+  return db;
+#else // USE_MKLDNN
+
   Tensor db;
   db.ResetLike(b);
 
@@ -325,6 +337,7 @@ Tensor CpuConvBackwardb(const Tensor &dy, const Tensor &b,
   SumRows(tmp3, &db);
 
   return db;
+#endif // USE_MKLDNN
 };
 
 #ifdef USE_CUDNN
