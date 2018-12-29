@@ -28,6 +28,8 @@
 
 using namespace singa;
 
+#ifdef USE_MKLDNN
+
 TEST(Operation_Convolution, Forward) {
   const size_t batch_size = 2, c = 1, h = 3, w = 3;
   const float x[batch_size * c * h * w] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f,
@@ -135,8 +137,11 @@ TEST(Operation_Convolution, Backward) {
   EXPECT_EQ(dy[6] * wptr[5] + dy[7] * wptr[3], dx[16]);
   EXPECT_EQ(dy[7] * wptr[4], dx[17]);
 
+
   Tensor dw = CpuConvBackwardW(grad, in, weight, conv_handle);
   Tensor db = CpuConvBackwardb(grad, bias, conv_handle);
+
+
   const float *dbptr = db.data<float>();
   EXPECT_FLOAT_EQ(dy[0] + dy[1] + dy[2] + dy[3] + dy[4] + dy[5] + dy[6] + dy[7],
                   dbptr[0]);
@@ -160,5 +165,7 @@ TEST(Operation_Convolution, Backward) {
                   dwptr[7]);
   EXPECT_FLOAT_EQ(dy[0] * x[4] + dy[4] * x[13], dwptr[8]);
 }
+
+#endif  // USE_MKLDNN
 
 #endif  // USE_CBLAS

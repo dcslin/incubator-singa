@@ -50,7 +50,6 @@ void _free(void *ptr) {
 
 CppCPU::CppCPU() : Device(-1, 1) {
   lang_ = kCpp;
-  // TODO(shicong): free engine, stream
 #ifdef USE_MKLDNN
   ctx_.engine = new mkldnn::engine(mkldnn::engine::cpu, 0);
 #endif //USE_MKLDNN

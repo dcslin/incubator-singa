@@ -90,9 +90,9 @@ Tensor CpuPoolingForward(const PoolingHandle &ph, const Tensor &x) {
       auto y_mem = memory(ph.pool_fwd_pd->dst_primitive_desc(), y.block()->mutable_data());
       auto x_mem = memory({{{ph.x_dims}, ph.dtype, memory::format::nchw}, eng},
                           x.block()->mutable_data());
+      auto p_fwd = pooling_forward(*ph.pool_fwd_pd, x_mem, y_mem, *ph.ws_mem);
 
-      stream(stream::kind::eager).submit({pooling_forward(*ph.pool_fwd_pd, x_mem, y_mem, *ph.ws_mem)}).wait();
-
+      stream(stream::kind::eager).submit({p_fwd}).wait();
     }
     catch (mkldnn::error &e) {
       LOG(FATAL) << "MKLDNN pooling fwd" << "Status: " << e.status << " Message: " << e.message;
