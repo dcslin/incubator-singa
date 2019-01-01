@@ -13,12 +13,13 @@
 #include <mkldnn.hpp>
 
 // combine scale and bias into weight format recognised by mkldnn api
-static inline singa::Tensor get_bn_weight_from_scale_bias(const singa::Tensor &s, const singa::Tensor &b) {
+static inline singa::Tensor get_bn_weight_from(const singa::Tensor &s, const singa::Tensor &b) {
   singa::Tensor w(singa::Shape{s.Size(),b.Size()});
   CopyDataToFrom(&w, s,s.Size(),0,0);
   CopyDataToFrom(&w, b,b.Size(),s.Size(),0);
   return w;
 }
+
 
 #endif // USE_MKLDNN
 

@@ -7,7 +7,6 @@ PoolingHandle::PoolingHandle(const Tensor &input,
                              const std::vector<int>& kernel_size,
                              const std::vector<int>& stride, const std::vector<int>& padding,
                              const bool is_max) {
-
   kernel_h = kernel_size[0];
   kernel_w = kernel_size[1];
 

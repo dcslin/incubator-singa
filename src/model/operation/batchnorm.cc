@@ -26,8 +26,7 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
   if (is_2d) {
     x_dims = {(int)batchsize, (int)channels};
     y_dims = {(int)batchsize, (int)channels};
-  }
-  else {
+  } else {
     x_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
     y_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
   }
@@ -62,13 +61,12 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
     y.ResetLike(x);
 
 
-    Tensor w = get_bn_weight_from_scale_bias(bnScale, bnBias);
+    Tensor w = get_bn_weight_from(bnScale, bnBias);
 
     y.device()->Exec([&y, &x, &w, &bnh](Context *ctx) {
       try {
         auto eng = *ctx->engine;
         using namespace mkldnn;
-        // examples of  mkldnn batch norm: https://github.com/intel/mkl-dnn/issues/367
         auto x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng}, x.block()->mutable_data());
         auto y_mem = memory({{{bnh.y_dims}, bnh.dtype, bnh.data_memory_format}, eng}, y.block()->mutable_data());
 
@@ -86,7 +84,7 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
         LOG(FATAL) << "MKLDNN Batch Norm" << "Status: " << e.status << " Message: " << e.message;
       }
 
-    }, {x.block()}, {y.block()});
+    }, {y.block(), x.block(), w.block()}, {y.block()});
 
     return y;
 
@@ -106,7 +104,7 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
     var.ResetLike(running_var);
 
     // combine scale and bias to construct weight tensor in required format for backward
-    Tensor w = get_bn_weight_from_scale_bias(bnScale, bnBias);
+    Tensor w = get_bn_weight_from(bnScale, bnBias);
 
     y.device()->Exec([&x, &y, &mean, &var, &w, &bnh](Context *ctx) {
       try {
@@ -131,10 +129,10 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
         singa::InitLogging("");
         LOG(FATAL) << "MKLDNN Batch Norm Backward" << "Status: " << e.status << " Message: " << e.message;
       }
-    }, {x.block()}, {y.block(), mean.block(), var.block()});
+    }, {x.block(), w.block()}, {y.block(), mean.block(), var.block()});
 
 
-    // local implemented running mean as mkldnn does not support it out of the box yet:
+    // local implemented running mean as mkldnn does not support it yet:
     // https://github.com/intel/mkl-dnn/issues/371
     running_mean = running_mean*bnh.factor + mean*(1-bnh.factor);
     running_var = running_var*bnh.factor + var*(1-bnh.factor);
@@ -153,7 +151,7 @@ const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
   dx.ResetLike(dy);
 
   // combine scale and bias to construct weight tensor in required format for backward
-  Tensor w = get_bn_weight_from_scale_bias(bnScale, bnBias);
+  Tensor w = get_bn_weight_from(bnScale, bnBias);
 
   Tensor dw(Shape{bnScale.Size(),bnBias.Size()});
 
@@ -191,15 +189,14 @@ const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
   }, {x.block(), dy.block(), mean.block(), var.block()},
   {dx.block(), dw.block()});
 
-  Tensor dbnScale = CopyRows(dw,0,bnScale.Size());
-  Tensor dbnBias = CopyRows(dw,1,bnBias.Size());
-
+  Tensor dbnScale = CopyRows(dw, 0, bnScale.Size());
+  Tensor dbnBias = CopyRows(dw, 1, bnBias.Size());
 
   return {dx, dbnScale, dbnBias};
   }
 
 
-#endif // USE_MKLDNN
+#endif  // USE_MKLDNN
 
 #ifdef USE_CUDNN
 CudnnBatchNormHandle::CudnnBatchNormHandle(const float momentum,
