@@ -22,21 +22,21 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
 #ifdef USE_MKLDNN
   dtype = GetMKLDNNDataType(input.data_type());
   epsilon =1e-5f;
-  data_memory_format = is_2d ? mkldnn::memory::format::nc : mkldnn::memory::format::nchw;
   if (is_2d) {
-    x_dims = {(int)batchsize, (int)channels};
-    y_dims = {(int)batchsize, (int)channels};
+    data_dims = {(int)batchsize, (int)channels};
+    data_memory_format = mkldnn::memory::format::nc;
   } else {
-    x_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
-    y_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
+    data_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
+    data_memory_format = mkldnn::memory::format::nchw;
   }
 
   auto eng = *input.device()->context(0)->engine;
-  x_md = new mkldnn::memory::desc(x_dims, dtype, data_memory_format);
-  dx_md = new mkldnn::memory::desc(x_dims, dtype, data_memory_format);
-  bn_fwd_d = new mkldnn::batch_normalization_forward::desc(mkldnn::forward_training, *x_md, epsilon,
-                                                           mkldnn::use_scale_shift);
-  bn_fwd_pd = new mkldnn::batch_normalization_forward::primitive_desc(*bn_fwd_d, eng);
+  data_md = new mkldnn::memory::desc(data_dims, dtype, data_memory_format);
+  data_pd = new mkldnn::memory::primitive_desc(*data_md, eng);
+  bn_fwd_d = new mkldnn::batch_normalization_forward::desc(
+      mkldnn::forward_training, *data_md, epsilon, mkldnn::use_scale_shift);
+  bn_fwd_pd = new mkldnn::batch_normalization_forward::primitive_desc(*bn_fwd_d,
+                                                                      eng);
 #endif // USE_MKLDNN
 
 };
@@ -44,17 +44,19 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
 
   BatchNormHandle::~BatchNormHandle() {
 #ifdef USE_MKLDNN
-    delete (x_md);
-    delete (dx_md);
-    delete (bn_fwd_d);
-    delete (bn_fwd_pd);
+    delete data_md;
+    delete data_pd;
+    delete bn_fwd_d;
+    delete bn_fwd_pd;
 #endif // USE_MKLDNN
   }
 
 #ifdef USE_MKLDNN
 
-  Tensor CpuBatchNormForwardInference(const BatchNormHandle &bnh, const Tensor& x, const Tensor& bnScale, const Tensor& bnBias,
-                                                        Tensor& running_mean, Tensor& running_var){
+  Tensor
+  CpuBatchNormForwardInference(const BatchNormHandle &bnh, const Tensor &x,
+                               const Tensor &bnScale, const Tensor &bnBias,
+                               Tensor &running_mean, Tensor &running_var) {
 
     CHECK_EQ(x.device()->lang(), kCpp);
     Tensor y;
@@ -67,13 +69,18 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
       try {
         auto eng = *ctx->engine;
         using namespace mkldnn;
-        auto x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng}, x.block()->mutable_data());
-        auto y_mem = memory({{{bnh.y_dims}, bnh.dtype, bnh.data_memory_format}, eng}, y.block()->mutable_data());
+        auto x_mem = memory(*bnh.data_pd, x.block()->mutable_data());
+        auto y_mem = memory(*bnh.data_pd, y.block()->mutable_data());
 
-        auto bn_fwd_d = batch_normalization_forward::desc(forward_inference, *bnh.x_md, bnh.epsilon, use_scale_shift);
-        auto bn_fwd_pd = batch_normalization_forward::primitive_desc(bn_fwd_d, eng);
+        auto bn_fwd_d = batch_normalization_forward::desc(forward_inference,
+                                                          *bnh.data_md,
+                                                          bnh.epsilon,
+                                                          use_scale_shift);
+        auto bn_fwd_pd = batch_normalization_forward::primitive_desc(bn_fwd_d,
+                                                                     eng);
 
-        auto w_mem = memory(bn_fwd_pd.weights_primitive_desc(), w.block()->mutable_data());
+        auto w_mem = memory(bn_fwd_pd.weights_primitive_desc(),
+                            w.block()->mutable_data());
 
         auto bn = batch_normalization_forward(bn_fwd_pd, x_mem, w_mem, y_mem);
 
@@ -81,7 +88,8 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
       }
       catch (mkldnn::error &e) {
         InitLogging("");
-        LOG(FATAL) << "MKLDNN Batch Norm" << "Status: " << e.status << " Message: " << e.message;
+        LOG(FATAL) << "MKLDNN Batch Norm" << "Status: " << e.status
+                   << " Message: " << e.message;
       }
 
     }, {y.block(), x.block(), w.block()}, {y.block()});
@@ -91,7 +99,8 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
   }
 
   const std::vector<Tensor>
-  CpuBatchNormForwardTraining(const BatchNormHandle &bnh, const Tensor &x, const Tensor &bnScale, const Tensor &bnBias,
+  CpuBatchNormForwardTraining(const BatchNormHandle &bnh, const Tensor &x,
+                              const Tensor &bnScale, const Tensor &bnBias,
                               Tensor &running_mean, Tensor &running_var) {
 
     Tensor y;
@@ -103,7 +112,7 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
     Tensor var;
     var.ResetLike(running_var);
 
-    // combine scale and bias to construct weight tensor in required format for backward
+    // combine scale and bias to construct weight tensor in required format
     Tensor w = get_bn_weight_from(bnScale, bnBias);
 
     y.device()->Exec([&x, &y, &mean, &var, &w, &bnh](Context *ctx) {
@@ -111,23 +120,26 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
         auto eng = *ctx->engine;
         using namespace mkldnn;
 
-        auto x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng},
-                            x.block()->mutable_data());
-        auto y_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng},
-                            y.block()->mutable_data());
-        auto m_mem = memory(bnh.bn_fwd_pd->mean_primitive_desc(), mean.block()->mutable_data());
+        auto x_mem = memory(*bnh.data_pd, x.block()->mutable_data());
+        auto y_mem = memory(*bnh.data_pd, y.block()->mutable_data());
+        auto m_mem = memory(bnh.bn_fwd_pd->mean_primitive_desc(),
+                            mean.block()->mutable_data());
 
-        auto v_mem = memory(bnh.bn_fwd_pd->variance_primitive_desc(), var.block()->mutable_data());
+        auto v_mem = memory(bnh.bn_fwd_pd->variance_primitive_desc(),
+                            var.block()->mutable_data());
 
-        auto w_mem = memory(bnh.bn_fwd_pd->weights_primitive_desc(),w.block()->mutable_data());
+        auto w_mem = memory(bnh.bn_fwd_pd->weights_primitive_desc(),
+                            w.block()->mutable_data());
 
-        auto bn_fwd = batch_normalization_forward(*bnh.bn_fwd_pd, x_mem, w_mem, y_mem, m_mem, v_mem);
+        auto bn_fwd = batch_normalization_forward(*bnh.bn_fwd_pd, x_mem, w_mem,
+                                                  y_mem, m_mem, v_mem);
 
         stream(stream::kind::eager).submit({bn_fwd}).wait();
       }
       catch (mkldnn::error &e) {
         singa::InitLogging("");
-        LOG(FATAL) << "MKLDNN Batch Norm Backward" << "Status: " << e.status << " Message: " << e.message;
+        LOG(FATAL) << "MKLDNN Batch Norm Backward" << "Status: " << e.status
+                   << " Message: " << e.message;
       }
     }, {x.block(), w.block()}, {y.block(), mean.block(), var.block()});
 
@@ -150,7 +162,7 @@ const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
   Tensor dx;
   dx.ResetLike(dy);
 
-  // combine scale and bias to construct weight tensor in required format for backward
+  // combine scale and bias to construct weight tensor in required format
   Tensor w = get_bn_weight_from(bnScale, bnBias);
 
   Tensor dw(Shape{bnScale.Size(),bnBias.Size()});
@@ -161,29 +173,40 @@ const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
       auto eng = *ctx->engine;
       using namespace mkldnn;
 
-      auto  x_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng},  x.block()->mutable_data());
-      auto dx_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng}, dx.block()->mutable_data());
-      auto  y_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng},  y.block()->mutable_data());
-      auto dy_mem = memory({{{bnh.x_dims}, bnh.dtype, bnh.data_memory_format}, eng}, dy.block()->mutable_data());
+      auto  x_mem = memory(*bnh.data_pd,  x.block()->mutable_data());
+      auto dx_mem = memory(*bnh.data_pd, dx.block()->mutable_data());
+      auto  y_mem = memory(*bnh.data_pd,  y.block()->mutable_data());
+      auto dy_mem = memory(*bnh.data_pd, dy.block()->mutable_data());
 
-      auto m_mem = memory(bnh.bn_fwd_pd->mean_primitive_desc(), mean.block()->mutable_data());
-      auto v_mem = memory(bnh.bn_fwd_pd->variance_primitive_desc(), var.block()->mutable_data());
-      auto w_mem = memory(bnh.bn_fwd_pd->weights_primitive_desc(), w.block()->mutable_data());
+      auto m_mem = memory(bnh.bn_fwd_pd->mean_primitive_desc(),
+                          mean.block()->mutable_data());
+      auto v_mem = memory(bnh.bn_fwd_pd->variance_primitive_desc(),
+                          var.block()->mutable_data());
+      auto w_mem = memory(bnh.bn_fwd_pd->weights_primitive_desc(),
+                          w.block()->mutable_data());
 
 
-      auto bn_bwd_d = batch_normalization_backward::desc(backward, *bnh.dx_md, *bnh.x_md, bnh.epsilon, use_scale_shift);
-      auto bn_bwd_pd = batch_normalization_backward::primitive_desc(bn_bwd_d, eng, *bnh.bn_fwd_pd);
+      auto bn_bwd_d = batch_normalization_backward::desc(backward, *bnh.data_md,
+                                                         *bnh.data_md,
+                                                         bnh.epsilon,
+                                                         use_scale_shift);
+      auto bn_bwd_pd = batch_normalization_backward::primitive_desc(bn_bwd_d,
+                                                                    eng,
+                                                                    *bnh.bn_fwd_pd);
 
 
-      auto dw_mem = memory(bn_bwd_pd.diff_weights_primitive_desc(), dw.block()->mutable_data());
+      auto dw_mem = memory(bn_bwd_pd.diff_weights_primitive_desc(),
+                           dw.block()->mutable_data());
 
-      auto bn_bwd = batch_normalization_backward(bn_bwd_pd, x_mem, m_mem, v_mem, dy_mem, w_mem, dx_mem, dw_mem);
+      auto bn_bwd = batch_normalization_backward(bn_bwd_pd, x_mem, m_mem, v_mem,
+                                                 dy_mem, w_mem, dx_mem, dw_mem);
 
       stream(stream::kind::eager).submit({bn_bwd}).wait();
     }
     catch (mkldnn::error &e) {
       singa::InitLogging("");
-      LOG(FATAL) << "MKLDNN Batch Norm Backward" << "Status: " << e.status << " Message: " << e.message;
+      LOG(FATAL) << "MKLDNN Batch Norm Backward" << "Status: " << e.status
+                 << " Message: " << e.message;
     }
 
   }, {x.block(), dy.block(), mean.block(), var.block()},

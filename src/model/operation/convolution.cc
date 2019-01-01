@@ -43,17 +43,20 @@ ConvHandle::ConvHandle(const Tensor &input,
   const int groups = 1; // only groups 1 is supported for now
   dtype = GetMKLDNNDataType(input.data_type());
 
-  x_dims = {(int)input.shape(0),(int)in_channels, (int)input.shape(2),(int)input.shape(3)};
+  x_dims = {(int) input.shape(0), (int) in_channels, (int) input.shape(2),
+            (int) input.shape(3)};
   b_dims = {(int)out_channels};
   s_dims = {(int)stride_h, (int)stride_w};
   p_dims = {(int)pad_h, (int)pad_w};
-  o_dims = {(int)input.shape(0),(int)out_channels, (int)conv_height,(int)conv_width};
-  w_dims = {groups, (int)out_channels/groups, (int)in_channels/groups, (int)kernel_size[0], (int)kernel_size[1] };
+  y_dims = {(int) input.shape(0), (int) out_channels, (int) conv_height,
+            (int) conv_width};
+  w_dims = {groups, (int) out_channels / groups, (int) in_channels / groups,
+            (int) kernel_size[0], (int) kernel_size[1]};
 
   x_md = new mkldnn::memory::desc( x_dims, dtype, mkldnn::memory::format::nchw);
   w_md = new mkldnn::memory::desc( w_dims, dtype, mkldnn::memory::format::goihw);
   b_md = new mkldnn::memory::desc( b_dims, dtype, mkldnn::memory::format::x);
-  y_md = new mkldnn::memory::desc( o_dims, dtype, mkldnn::memory::format::nchw);
+  y_md = new mkldnn::memory::desc( y_dims, dtype, mkldnn::memory::format::nchw);
 
   // convolution forward primitive descriptor is shared between forward and backward process
   conv_d = new mkldnn::convolution_forward::desc(
@@ -108,18 +111,21 @@ Tensor CpuConvForward(const Tensor &x, Tensor &W,  Tensor &b,
       using namespace mkldnn;
 
       auto eng = *ctx->engine;
-      auto x_mem = memory({{{ch.x_dims}, ch.dtype, memory::format::nchw}, eng}, inblock->mutable_data());
-      auto w_mem = memory({{{ch.w_dims}, ch.dtype, memory::format::goihw}, eng},  wblock->mutable_data());
-      auto b_mem = memory({{{ch.b_dims}, ch.dtype, memory::format::x},    eng},  bblock->mutable_data());
-      auto y_mem = memory(ch.conv_pd->dst_primitive_desc(), outblock->mutable_data());
+      auto x_mem = memory({*ch.x_md, eng}, inblock->mutable_data());
+      auto w_mem = memory({*ch.w_md, eng},  wblock->mutable_data());
+      auto b_mem = memory({*ch.b_md, eng},  bblock->mutable_data());
+      auto y_mem = memory(ch.conv_pd->dst_primitive_desc(),
+                          outblock->mutable_data());
 
-      auto conv_fwd = convolution_forward(*ch.conv_pd, x_mem, w_mem, b_mem, y_mem);
+      auto conv_fwd = convolution_forward(*ch.conv_pd, x_mem, w_mem, b_mem,
+                                          y_mem);
 
       stream(stream::kind::eager).submit({conv_fwd}).wait();
     }
     catch (mkldnn::error &e) {
       singa::InitLogging("");
-      LOG(FATAL) << "MKLDNN conv fwd " << "Status: " << e.status << " Message: " << e.message;
+      LOG(FATAL) << "MKLDNN conv fwd " << "Status: " << e.status << " Message: "
+                 << e.message;
     }
 
   }, {x.block(), W.block(), b.block()}, {output.block()});
@@ -187,23 +193,30 @@ Tensor CpuConvBackwardx(const Tensor &dy, Tensor &W, const Tensor &x,
     try {
       auto eng = *ctx->engine;
       using namespace mkldnn;
-      auto x_mem = memory({{{ch.x_dims}, ch.dtype, memory::format::nchw}, eng}, inblock->mutable_data());
-      auto w_mem = memory({{{ch.w_dims}, ch.dtype, memory::format::goihw}, eng}, wblock->mutable_data());
-      auto dx_mem = memory({{{ch.x_dims}, ch.dtype, memory::format::nchw}, eng}, dxblock->mutable_data());
-      auto dy_mem = memory({{{ch.o_dims}, ch.dtype, memory::format::nchw}, eng}, dyblock->mutable_data());
+      auto x_mem = memory({*ch.x_md, eng}, inblock->mutable_data());
+      auto w_mem = memory({*ch.w_md, eng}, wblock->mutable_data());
+      auto dx_mem = memory({*ch.x_md, eng}, dxblock->mutable_data());
+      auto dy_mem = memory({*ch.y_md, eng}, dyblock->mutable_data());
 
 
-      auto conv_bwd_data_d = convolution_backward_data::desc(convolution_direct, *ch.x_md, *ch.w_md, *ch.y_md, ch.s_dims,
-                                                             ch.p_dims, ch.p_dims, padding_kind::zero);
-      auto conv_bwd_data_pd = convolution_backward_data::primitive_desc(conv_bwd_data_d, eng, *ch.conv_pd);
-      auto conv_bwd_data = convolution_backward_data(conv_bwd_data_pd, dy_mem, w_mem, dx_mem);
+      auto conv_bwd_data_d = convolution_backward_data::desc(convolution_direct,
+                                                             *ch.x_md, *ch.w_md,
+                                                             *ch.y_md,
+                                                             ch.s_dims,
+                                                             ch.p_dims,
+                                                             ch.p_dims,
+                                                             padding_kind::zero);
+      auto conv_bwd_data_pd = convolution_backward_data::primitive_desc(
+          conv_bwd_data_d, eng, *ch.conv_pd);
+      auto conv_bwd_data = convolution_backward_data(conv_bwd_data_pd, dy_mem,
+                                                     w_mem, dx_mem);
 
 
       stream(stream::kind::eager).submit({conv_bwd_data}).wait();
-    }
-    catch (mkldnn::error &e) {
+    } catch (mkldnn::error &e) {
       singa::InitLogging("");
-      LOG(FATAL) << "MKLDNN conv fwd " << "Status: " << e.status << " Message: " << e.message;
+      LOG(FATAL) << "MKLDNN conv fwd " << "Status: " << e.status << " Message: "
+                 << e.message;
     }
 
   }, {x.block(), dy.block(), W.block()}, {dx.block()});
@@ -255,15 +268,22 @@ Tensor CpuConvBackwardW(const Tensor &dy, const Tensor &x, const Tensor &W,
       auto eng = *ctx->engine;
       using namespace mkldnn;
 
-      auto x_mem = memory({{{ch.x_dims}, ch.dtype, memory::format::nchw}, eng}, inblock->mutable_data());
-      auto dy_mem = memory({{{ch.o_dims}, ch.dtype, memory::format::nchw}, eng}, dyblock->mutable_data());
-      auto dw_mem = memory({{{ch.w_dims}, ch.dtype, memory::format::goihw}, eng}, dwblock->mutable_data());
-      auto db_mem = memory({{{ch.b_dims}, ch.dtype, memory::format::x}, eng}, dbblock->mutable_data());
+      auto x_mem = memory( {*ch.x_md, eng}, inblock->mutable_data());
+      auto dy_mem = memory({*ch.y_md, eng}, dyblock->mutable_data());
+      auto dw_mem = memory({*ch.w_md, eng}, dwblock->mutable_data());
+      auto db_mem = memory({*ch.b_md, eng}, dbblock->mutable_data());
 
-      auto conv_dw_d = convolution_backward_weights::desc(convolution_direct, *ch.x_md, *ch.w_md, *ch.b_md, *ch.y_md,
-                                                          ch.s_dims, ch.p_dims, ch.p_dims, padding_kind::zero);
-      auto conv_dw_pd = convolution_backward_weights::primitive_desc(conv_dw_d, eng, *ch.conv_pd);
-      auto conv_dw = convolution_backward_weights(conv_dw_pd, x_mem, dy_mem, dw_mem, db_mem);
+      auto conv_dw_d = convolution_backward_weights::desc(convolution_direct,
+                                                          *ch.x_md, *ch.w_md,
+                                                          *ch.b_md, *ch.y_md,
+                                                          ch.s_dims, ch.p_dims,
+                                                          ch.p_dims,
+                                                          padding_kind::zero);
+      auto conv_dw_pd = convolution_backward_weights::primitive_desc(conv_dw_d,
+                                                                     eng,
+                                                                     *ch.conv_pd);
+      auto conv_dw = convolution_backward_weights(conv_dw_pd, x_mem, dy_mem,
+                                                  dw_mem, db_mem);
 
       mkldnn::stream(mkldnn::stream::kind::eager).submit({conv_dw}).wait();
     }
@@ -313,8 +333,7 @@ Tensor CpuConvBackwardb(const Tensor &dy, const Tensor &b,
   CHECK(b.shape(0) == ch.num_filters) << "bias shape should not change";
 
 #ifdef USE_MKLDNN
-  Tensor db = ch.db->Clone();
-  return db;
+  return ch.db->Clone();
 #else // USE_MKLDNN
   Tensor db;
   db.ResetLike(b);

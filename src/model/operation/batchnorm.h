@@ -13,10 +13,11 @@
 #include <mkldnn.hpp>
 
 // combine scale and bias into weight format recognised by mkldnn api
-static inline singa::Tensor get_bn_weight_from(const singa::Tensor &s, const singa::Tensor &b) {
-  singa::Tensor w(singa::Shape{s.Size(),b.Size()});
-  CopyDataToFrom(&w, s,s.Size(),0,0);
-  CopyDataToFrom(&w, b,b.Size(),s.Size(),0);
+static inline singa::Tensor
+get_bn_weight_from(const singa::Tensor &s, const singa::Tensor &b) {
+  singa::Tensor w(singa::Shape{s.Size(), b.Size()});
+  CopyDataToFrom(&w, s, s.Size(), 0, 0);
+  CopyDataToFrom(&w, b, b.Size(), s.Size(), 0);
   return w;
 }
 
@@ -40,10 +41,9 @@ class BatchNormHandle {
   //bool train = true;
 #ifdef USE_MKLDNN
   mkldnn::memory::data_type dtype;
-  mkldnn::memory::dims x_dims;
-  mkldnn::memory::dims y_dims;
-  mkldnn::memory::desc *x_md;
-  mkldnn::memory::desc *dx_md;
+  mkldnn::memory::dims data_dims;
+  mkldnn::memory::desc *data_md;
+  mkldnn::memory::primitive_desc *data_pd;
   mkldnn::batch_normalization_forward::desc *bn_fwd_d;
   mkldnn::batch_normalization_forward::primitive_desc *bn_fwd_pd;
   float epsilon;
@@ -55,18 +55,23 @@ class BatchNormHandle {
 #ifdef USE_MKLDNN
 
   Tensor
-  CpuBatchNormForwardInference(const BatchNormHandle &bnh, const Tensor &x, const Tensor &bnScale, const Tensor &bnBias,
+  CpuBatchNormForwardInference(const BatchNormHandle &bnh, const Tensor &x,
+                               const Tensor &bnScale, const Tensor &bnBias,
                                Tensor &running_mean, Tensor &running_var);
 
   const std::vector<Tensor>
-  CpuBatchNormForwardTraining(const BatchNormHandle &bnh, const Tensor &x, const Tensor &bnScale, const Tensor &bnBias,
+  CpuBatchNormForwardTraining(const BatchNormHandle &bnh, const Tensor &x,
+                              const Tensor &bnScale, const Tensor &bnBias,
                               Tensor &running_mean, Tensor &running_var);
 
   const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
-                                                  const Tensor &y, const Tensor &dy,
+                                                  const Tensor &y,
+                                                  const Tensor &dy,
                                                   const Tensor &x,
-                                                  const Tensor &bnScale, const Tensor &bnBias,
-                                                  const Tensor &mean, const Tensor &var);
+                                                  const Tensor &bnScale,
+                                                  const Tensor &bnBias,
+                                                  const Tensor &mean,
+                                                  const Tensor &var);
 
 #endif // USE_MKLDNN
 

@@ -48,8 +48,11 @@ PoolingHandle::PoolingHandle(const Tensor &input,
   if(is_max_pooling)
     pooling_algo = mkldnn::pooling_max;
 
-  pool_fwd_d = new mkldnn::pooling_forward::desc(mkldnn::forward_training, pooling_algo, *x_md, *y_md, s_dims,
-                                                 k_dims, p_dims, p_dims, mkldnn::padding_kind::zero);
+  pool_fwd_d = new mkldnn::pooling_forward::desc(mkldnn::forward_training,
+                                                 pooling_algo, *x_md, *y_md,
+                                                 s_dims,
+                                                 k_dims, p_dims, p_dims,
+                                                 mkldnn::padding_kind::zero);
   pool_fwd_pd = new mkldnn::pooling_forward::primitive_desc(*pool_fwd_d, eng);
 
   if (is_max_pooling) {
@@ -93,17 +96,19 @@ Tensor CpuPoolingForward(const PoolingHandle &ph, const Tensor &x) {
       auto eng = *ctx->engine;
       using namespace mkldnn;
 
-      auto y_mem = memory(ph.pool_fwd_pd->dst_primitive_desc(), y.block()->mutable_data());
-      auto x_mem = memory({{{ph.x_dims}, ph.dtype, memory::format::nchw}, eng},
-                          x.block()->mutable_data());
+      auto y_mem = memory(ph.pool_fwd_pd->dst_primitive_desc(),
+                          y.block()->mutable_data());
+      auto x_mem = memory({*ph.x_md, eng}, x.block()->mutable_data());
 
-      auto p_fwd = ph.is_max_pooling ? pooling_forward(*ph.pool_fwd_pd, x_mem, y_mem, *ph.ws_mem) : pooling_forward(
-          *ph.pool_fwd_pd, x_mem, y_mem);
+      auto p_fwd = ph.is_max_pooling ? pooling_forward(*ph.pool_fwd_pd, x_mem,
+                                                       y_mem, *ph.ws_mem)
+                                     : pooling_forward(*ph.pool_fwd_pd, x_mem,
+                                                       y_mem);
 
       stream(stream::kind::eager).submit({p_fwd}).wait();
-    }
-    catch (mkldnn::error &e) {
-      LOG(FATAL) << "MKLDNN pooling fwd" << "Status: " << e.status << " Message: " << e.message;
+    } catch (mkldnn::error &e) {
+      LOG(FATAL) << "MKLDNN pooling fwd" << "Status: " << e.status
+                 << " Message: " << e.message;
     }
 
   }, {x.block()}, {y.block()});
@@ -122,17 +127,21 @@ Tensor CpuPoolingBackward(const PoolingHandle &ph, const Tensor &grad, const Ten
     try {
       auto eng = *ctx->engine;
       using namespace mkldnn;
-      auto pool_bwd_d = pooling_backward::desc(ph.pooling_algo, *ph.x_md, *ph.y_md, ph.s_dims, ph.k_dims, ph.p_dims,
+      auto pool_bwd_d = pooling_backward::desc(ph.pooling_algo, *ph.x_md,
+                                               *ph.y_md, ph.s_dims, ph.k_dims,
+                                               ph.p_dims,
                                                ph.p_dims,
                                                padding_kind::zero);
-      auto pool_bwd_pd = pooling_backward::primitive_desc(pool_bwd_d, eng, *ph.pool_fwd_pd);
+      auto pool_bwd_pd = pooling_backward::primitive_desc(pool_bwd_d, eng,
+                                                          *ph.pool_fwd_pd);
 
-      auto dx_mem = memory({{{ph.x_dims}, ph.dtype, memory::format::nchw}, eng},
-                           in_grad.block()->mutable_data());
-      auto dy_mem = memory({{{ph.y_dims}, memory::data_type::f32, memory::format::nchw}, eng},
-                           grad.block()->mutable_data());
+      auto dx_mem = memory({*ph.x_md, eng}, in_grad.block()->mutable_data());
+      auto dy_mem = memory({*ph.y_md, eng}, grad.block()->mutable_data());
 
-      auto p_bwd = ph.is_max_pooling ? pooling_backward(pool_bwd_pd, dy_mem, *ph.ws_mem, dx_mem) : pooling_backward( pool_bwd_pd, dy_mem, dx_mem);
+      auto p_bwd = ph.is_max_pooling ? pooling_backward(pool_bwd_pd, dy_mem,
+                                                        *ph.ws_mem, dx_mem)
+                                     : pooling_backward(pool_bwd_pd, dy_mem,
+                                                        dx_mem);
 
       stream(stream::kind::eager).submit({p_bwd}).wait();
     }

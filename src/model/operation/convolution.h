@@ -56,7 +56,7 @@ public:
   mkldnn::memory::dims s_dims;
   mkldnn::memory::dims p_dims;
   mkldnn::memory::dims x_dims;
-  mkldnn::memory::dims o_dims;
+  mkldnn::memory::dims y_dims;
   mkldnn::memory::dims w_dims;
 
   const mkldnn::memory::desc *x_md;

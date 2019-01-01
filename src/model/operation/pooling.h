@@ -58,9 +58,10 @@ class PoolingHandle {
 
 #ifdef USE_MKLDNN
 
-Tensor CpuPoolingForward(const PoolingHandle &ph, const Tensor &x);
-Tensor CpuPoolingBackward(const PoolingHandle &ph, const Tensor &dy,
-                            const Tensor& x, const Tensor& y);
+  Tensor CpuPoolingForward(const PoolingHandle &ph, const Tensor &x);
+
+  Tensor CpuPoolingBackward(const PoolingHandle &ph, const Tensor &dy,
+                            const Tensor &x, const Tensor &y);
 
 #endif // USE_MKLDNN
 
