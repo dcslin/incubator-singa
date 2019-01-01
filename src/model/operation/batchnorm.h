@@ -12,6 +12,7 @@
 #ifdef USE_MKLDNN
 #include <mkldnn.hpp>
 
+// combine scale and bias into weight format recognised by mkldnn api
 static inline singa::Tensor get_bn_weight_from_scale_bias(const singa::Tensor &s, const singa::Tensor &b) {
   singa::Tensor w(singa::Shape{s.Size(),b.Size()});
   CopyDataToFrom(&w, s,s.Size(),0,0);
@@ -40,7 +41,7 @@ class BatchNormHandle {
   mkldnn::memory::data_type dtype;
   mkldnn::memory::dims x_dims;
   mkldnn::memory::dims y_dims;
-  mkldnn::memory::desc *x_md ;
+  mkldnn::memory::desc *x_md;
   mkldnn::memory::desc *dx_md;
   mkldnn::batch_normalization_forward::desc *bn_fwd_d;
   mkldnn::batch_normalization_forward::primitive_desc *bn_fwd_pd;
@@ -62,7 +63,7 @@ class BatchNormHandle {
 
   const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
                                                   const Tensor &y, const Tensor &dy,
-                                                  const Tensor &x, //const Tensor &dx,
+                                                  const Tensor &x,
                                                   const Tensor &bnScale, const Tensor &bnBias,
                                                   const Tensor &mean, const Tensor &var);
 

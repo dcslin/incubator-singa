@@ -24,8 +24,8 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
   epsilon =1e-5f;
   data_memory_format = is_2d ? mkldnn::memory::format::nc : mkldnn::memory::format::nchw;
   if (is_2d) {
-    x_dims = {(int)batchsize, (int)channels} ;
-    y_dims = {(int)batchsize, (int)channels} ;
+    x_dims = {(int)batchsize, (int)channels};
+    y_dims = {(int)batchsize, (int)channels};
   }
   else {
     x_dims = {(int)batchsize, (int)channels, (int)height, (int)width};
@@ -146,7 +146,7 @@ BatchNormHandle::BatchNormHandle(const float momentum, const Tensor& input) {
 
 const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
                         const Tensor &y, const Tensor &dy,
-                        const Tensor &x, //const Tensor &dx,
+                        const Tensor &x,
                         const Tensor &bnScale, const Tensor &bnBias,
                         const Tensor &mean, const Tensor &var){
   Tensor dx;
@@ -177,8 +177,7 @@ const std::vector<Tensor> CpuBatchNormBackwardx(const BatchNormHandle &bnh,
       auto bn_bwd_pd = batch_normalization_backward::primitive_desc(bn_bwd_d, eng, *bnh.bn_fwd_pd);
 
 
-      auto dw_mem = memory(bn_bwd_pd.diff_weights_primitive_desc());
-      dw_mem.set_data_handle(dw.block()->mutable_data());
+      auto dw_mem = memory(bn_bwd_pd.diff_weights_primitive_desc(), dw.block()->mutable_data());
 
       auto bn_bwd = batch_normalization_backward(bn_bwd_pd, x_mem, m_mem, v_mem, dy_mem, w_mem, dx_mem, dw_mem);
 

@@ -44,29 +44,36 @@ PoolingHandle::PoolingHandle(const Tensor &input,
   x_md = new mkldnn::memory::desc({x_dims}, dtype, mkldnn::memory::format::nchw);
   y_md = new mkldnn::memory::desc({y_dims}, dtype, mkldnn::memory::format::nchw);
 
-  pool_fwd_d = new mkldnn::pooling_forward::desc(mkldnn::forward_training, mkldnn::pooling_max, *x_md, *y_md, s_dims,
+  // allow max or avg (follow cudnn implementation convention)
+  pooling_algo = mkldnn::pooling_avg_exclude_padding;
+  if(is_max_pooling)
+    pooling_algo = mkldnn::pooling_max;
+
+  pool_fwd_d = new mkldnn::pooling_forward::desc(mkldnn::forward_training, pooling_algo, *x_md, *y_md, s_dims,
                                                  k_dims, p_dims, p_dims, mkldnn::padding_kind::zero);
   pool_fwd_pd = new mkldnn::pooling_forward::primitive_desc(*pool_fwd_d, eng);
 
-  // TODO(shicong):fix this
-  auto a = pool_fwd_pd->workspace_primitive_desc();
-  pool_ws_d = &a;
-
+  if (is_max_pooling) {
 //    During training max pooling requires workspace on forward (mkldnn_forward_training) and backward
 //    (mkldnn_backward) passes to save indices where maximum was found. Workspace layout is opaque and
 //    the indices cannot be restored from it. However one can use backward pooling to perform up-sampling
 //    (used in some detection topologies).
-  ws_mem = new mkldnn::memory(*pool_ws_d);
+    auto temp = pool_fwd_pd->workspace_primitive_desc();
+    pool_ws_d = &temp;
+    ws_mem = new mkldnn::memory(*pool_ws_d);
+  }
+
 #endif // USE_MKLDNN
 }
 
 PoolingHandle::~PoolingHandle(){
 #ifdef USE_MKLDNN
-  delete(x_md );
-  delete(y_md );
-  delete(pool_fwd_d );
-  delete(pool_fwd_pd );
-  delete(ws_mem );
+  delete(x_md);
+  delete(y_md);
+  delete(pool_fwd_d);
+  delete(pool_fwd_pd);
+  if (is_max_pooling)
+    delete(ws_mem);
 #endif // USE_MKLDNN
 }
 
@@ -90,7 +97,9 @@ Tensor CpuPoolingForward(const PoolingHandle &ph, const Tensor &x) {
       auto y_mem = memory(ph.pool_fwd_pd->dst_primitive_desc(), y.block()->mutable_data());
       auto x_mem = memory({{{ph.x_dims}, ph.dtype, memory::format::nchw}, eng},
                           x.block()->mutable_data());
-      auto p_fwd = pooling_forward(*ph.pool_fwd_pd, x_mem, y_mem, *ph.ws_mem);
+
+      auto p_fwd = ph.is_max_pooling ? pooling_forward(*ph.pool_fwd_pd, x_mem, y_mem, *ph.ws_mem) : pooling_forward(
+          *ph.pool_fwd_pd, x_mem, y_mem);
 
       stream(stream::kind::eager).submit({p_fwd}).wait();
     }
@@ -114,7 +123,7 @@ Tensor CpuPoolingBackward(const PoolingHandle &ph, const Tensor &grad, const Ten
     try {
       auto eng = *ctx->engine;
       using namespace mkldnn;
-      auto pool_bwd_d = pooling_backward::desc(pooling_max, *ph.x_md, *ph.y_md, ph.s_dims, ph.k_dims, ph.p_dims,
+      auto pool_bwd_d = pooling_backward::desc(ph.pooling_algo, *ph.x_md, *ph.y_md, ph.s_dims, ph.k_dims, ph.p_dims,
                                                ph.p_dims,
                                                padding_kind::zero);
       auto pool_bwd_pd = pooling_backward::primitive_desc(pool_bwd_d, eng, *ph.pool_fwd_pd);
@@ -124,7 +133,9 @@ Tensor CpuPoolingBackward(const PoolingHandle &ph, const Tensor &grad, const Ten
       auto dy_mem = memory({{{ph.y_dims}, memory::data_type::f32, memory::format::nchw}, eng},
                            grad.block()->mutable_data());
 
-      stream(stream::kind::eager).submit({pooling_backward(pool_bwd_pd, dy_mem, *ph.ws_mem, dx_mem)}).wait();
+      auto p_bwd = ph.is_max_pooling ? pooling_backward(pool_bwd_pd, dy_mem, *ph.ws_mem, dx_mem) : pooling_backward( pool_bwd_pd, dy_mem, dx_mem);
+
+      stream(stream::kind::eager).submit({p_bwd}).wait();
     }
     catch (mkldnn::error &e) {
       LOG(FATAL) << "MKLDNN pooling bwd" << "Status: " << e.status << " Message: " << e.message;

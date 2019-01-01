@@ -59,14 +59,14 @@ public:
   mkldnn::memory::dims o_dims;
   mkldnn::memory::dims w_dims;
 
-  mkldnn::memory::desc *x_md;
-  mkldnn::memory::desc *w_md;
-  mkldnn::memory::desc *b_md;
-  mkldnn::memory::desc *y_md;
-  mkldnn::convolution_forward::desc *conv_d;
-  mkldnn::convolution_forward::primitive_desc *conv_pd;
+  const mkldnn::memory::desc *x_md;
+  const mkldnn::memory::desc *w_md;
+  const mkldnn::memory::desc *b_md;
+  const mkldnn::memory::desc *y_md;
+  const mkldnn::convolution_forward::desc *conv_d;
+  const mkldnn::convolution_forward::primitive_desc *conv_pd;
 
-  Tensor *db;
+  const Tensor *db;
 #endif // USE_MKLDNN
 };
 

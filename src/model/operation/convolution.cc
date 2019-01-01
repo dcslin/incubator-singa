@@ -43,7 +43,7 @@ ConvHandle::ConvHandle(const Tensor &input,
   const int groups = 1; // only groups 1 is supported for now
   dtype = GetMKLDNNDataType(input.data_type());
 
-  x_dims = {(int)input.shape(0),(int)in_channels, (int)input.shape(2),(int)input.shape(3)} ;
+  x_dims = {(int)input.shape(0),(int)in_channels, (int)input.shape(2),(int)input.shape(3)};
   b_dims = {(int)out_channels};
   s_dims = {(int)stride_h, (int)stride_w};
   p_dims = {(int)pad_h, (int)pad_w};

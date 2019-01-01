@@ -18,35 +18,9 @@
 
 #include "singa/core/device.h"
 
-// Required for posix_memalign
-#define _POSIX_C_SOURCE 200112L
-#ifdef _WIN32
-#include <malloc.h>
-#endif
-
-
 namespace singa {
 
 std::shared_ptr<Device> defaultDevice=std::make_shared<CppCPU>();
-
-// malloc aligned memory chunk with alignment bytes
-void *aligned_malloc(size_t size, size_t alignment) {
-#ifdef _WIN32
-  return _aligned_malloc(size, alignment);
-#else
-  void *p;
-  return !posix_memalign(&p, alignment, size) ? p : NULL;
-#endif
-}
-#ifdef _WIN32
-void _free(void *ptr) {
-  _aligned_free(ptr);
-}
-#else
-void _free(void *ptr) {
-    free(ptr);
-  }
-#endif
 
 CppCPU::CppCPU() : Device(-1, 1) {
   lang_ = kCpp;
@@ -76,7 +50,7 @@ void CppCPU::DoExec(function<void(Context*)>&& fn, int executor) {
 
 void* CppCPU::Malloc(int size) {
   if (size > 0) {
-    void *ptr = aligned_malloc(size, 64);
+    void *ptr = malloc(size);
     memset(ptr, 0, size);
     return ptr;
   } else {
@@ -87,7 +61,7 @@ void* CppCPU::Malloc(int size) {
 
 void CppCPU::Free(void* ptr) {
   if (ptr != nullptr)
-    _free(ptr);
+    free(ptr);
 }
 
 
