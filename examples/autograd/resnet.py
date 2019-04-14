@@ -244,9 +244,14 @@ if __name__ == '__main__':
 
     with trange(niters) as t:
         for b in t:
+            tick = time.time()
             x = model(tx)
+            fd += time.time() - tick
+            tick = time.time()
             loss = autograd.softmax_cross_entropy(x, ty)
+            softmax += time.time() - tick
             for p, g in autograd.backward(loss):
                 # print(p.shape, g.shape)
+                tick = time.time()
                 sgd.update(p, g)
                 #pass

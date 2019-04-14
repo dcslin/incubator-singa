@@ -358,10 +358,9 @@ CudnnConvHandle::CudnnConvHandle(const Tensor &input,
                                  const std::vector<size_t>& stride, const std::vector<size_t>& padding,
                                  const size_t in_channels, const size_t out_channels, const bool bias,
                                  const size_t groups,
-                                 const size_t workspace_byte_limit, const std::string& prefer)
+                                 const size_t workspace_byte_limit, const std::string& prefer_)
   : ConvHandle(input, kernel_size, stride, padding, in_channels, out_channels,
                bias, groups) {
-
   DataType dtype = input.data_type();
   auto dev = input.device();
   Context *ctx = dev->context(0);

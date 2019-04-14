@@ -823,7 +823,7 @@ class _Conv2d(Operation):
                 db = singa.GpuConvBackwardb(dy, self.inputs[2], self.handle)
                 return dx, dW, db
             else:
-                return dx, dW, None
+                return dx, dW #, None
         else:
             dx = singa.CpuConvBackwardx(
                 dy, self.inputs[1], self.inputs[0], self.handle
@@ -835,7 +835,7 @@ class _Conv2d(Operation):
                 db = singa.CpuConvBackwardb(dy, self.inputs[2], self.handle)
                 return dx, dW, db
             else:
-                return dx, dW, None
+                return dx, dW #, None
 
 def conv2d(handle, x, W, b=None):
     if b is None:
@@ -1097,13 +1097,13 @@ class BatchNorm2d(Layer):
 
 
 class _BatchNorm2d(Operation):
-    def __init__(self, handle, name=None):
+    def __init__(self, handle, running_mean, running_var, name=None):
         super(_BatchNorm2d, self).__init__(name)
         self.handle = handle
+        self.running_mean = running_mean.data
+        self.running_var = running_var.data
 
-    def forward(self, x, scale, bias, running_mean, running_var):
-        self.running_mean = running_mean
-        self.running_var = running_var
+    def forward(self, x, scale, bias):
         if training:
 
             if isinstance(self.handle, singa.CudnnBatchNormHandle):
@@ -1124,8 +1124,8 @@ class _BatchNorm2d(Operation):
                     x,
                     scale,
                     bias,
-                    running_mean,
-                    running_var,
+                    self.running_mean,
+                    self.running_var,
                 )
             else:
                 y = singa.CpuBatchNormForwardInference(
@@ -1133,8 +1133,8 @@ class _BatchNorm2d(Operation):
                     x,
                     scale,
                     bias,
-                    running_mean,
-                    running_var,
+                    self.running_mean,
+                    self.running_var,
                 )
 
         return y
@@ -1158,7 +1158,7 @@ class _BatchNorm2d(Operation):
 
 
 def batchnorm_2d(handle, x, scale, bias, running_mean, running_var):
-    return _BatchNorm2d(handle)(x, scale, bias, running_mean, running_var)[0]
+    return _BatchNorm2d(handle, running_mean, running_var)(x, scale, bias)[0]
 
 
 class _Pooling2d(Operation):
