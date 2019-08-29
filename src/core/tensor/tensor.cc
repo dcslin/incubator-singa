@@ -703,7 +703,7 @@ GenUnaryTensorFn(Abs);
 GenUnaryTensorFn(Exp);
 GenUnaryTensorFn(Log);
 GenUnaryTensorFn(ReLU);
-GenUnaryTensorFn(ReLUTC2);
+GenUnaryTensorFn(ReLUTC);
 GenUnaryTensorFn(Sigmoid);
 GenUnaryTensorFn(Sign);
 GenUnaryTensorFn(Sqrt);
@@ -1471,21 +1471,6 @@ def softmax(float(N, D) I) -> (O, expsum, maxVal) {
   auto pExecutor =
       singa::compileTC<tc::CudaBackend>(tc, "softmax", {in}, {naiveOptions});
   auto outputs = singa::prepareOutputs(tc, "softmax", {in});
-  singa::runTC(*pExecutor, {in}, outputs);
-  return outputs[0];
-}
-
-Tensor ReluTC(const Tensor &in) {
-  std::string tc = R"TC(
-def relu(float(B,M) I) -> (O1){
-  O1(b, m) = fmax(I(b, m), 0)
-}
-  )TC";
-  auto naiveOptions =
-      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
-  auto pExecutor =
-      singa::compileTC<tc::CudaBackend>(tc, "relu", {in}, {naiveOptions});
-  auto outputs = singa::prepareOutputs(tc, "relu", {in});
   singa::runTC(*pExecutor, {in}, outputs);
   return outputs[0];
 }

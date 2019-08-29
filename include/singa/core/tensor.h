@@ -350,7 +350,7 @@ Tensor Abs(const Tensor &in);
 Tensor Exp(const Tensor &in);
 Tensor Log(const Tensor &in);
 Tensor ReLU(const Tensor &in);
-Tensor ReLUTC2(const Tensor &in);
+Tensor ReLUTC(const Tensor &in);
 Tensor Sigmoid(const Tensor &in);
 Tensor Sign(const Tensor &in);
 Tensor Sqrt(const Tensor &in);
@@ -373,7 +373,7 @@ void Abs(const Tensor &in, Tensor *out);
 void Exp(const Tensor &in, Tensor *out);
 void Log(const Tensor &in, Tensor *out);
 void ReLU(const Tensor &in, Tensor *out);
-void ReLUTC2(const Tensor &in, Tensor *out);
+void ReLUTC(const Tensor &in, Tensor *out);
 void Sigmoid(const Tensor &in, Tensor *out);
 void Sign(const Tensor &in, Tensor *out);
 void Sqrt(const Tensor &in, Tensor *out);
@@ -646,7 +646,6 @@ void runTC(const Executor &executor, const std::vector<Tensor> &inputs,
 
 // tensor comprehension operations
 Tensor SoftMaxTC(const Tensor &in);
-Tensor ReluTC(const Tensor &in);
 Tensor MatMulTC(const Tensor &in1, const Tensor &in2);
 Tensor FCTC(const Tensor &x, const Tensor &W, const Tensor &b);
 

@@ -128,31 +128,14 @@ def tensordot(float(N, C1, C2, H, W) I0,
   singa::runTC(*pExecutor, {t1, t2}, outputs);
 }
 
-TEST_F(TensorMath, TCRelu) {
+TEST_F(TensorMath, TCReLU) {
   auto cuda = std::make_shared<singa::CudaGPU>();
   singa::Tensor t1(singa::Shape{2, 2}, cuda);
 
   const float dat1[4] = {-1.0f, 1.0f, -2.0f, 3.0f};
   t1.CopyDataFromHostPtr<float>(dat1, 4);
 
-  auto o1 = ReluTC(t1).ToHost();
-  EXPECT_EQ(o1.shape(0), 2);
-  EXPECT_EQ(o1.shape(1), 2);
-  const float *dptr = o1.data<float>();
-  EXPECT_FLOAT_EQ(0.0f, dptr[0]);
-  EXPECT_FLOAT_EQ(1.0f, dptr[1]);
-  EXPECT_FLOAT_EQ(0.0f, dptr[2]);
-  EXPECT_FLOAT_EQ(3.0f, dptr[3]);
-}
-
-TEST_F(TensorMath, TCReLU2) {
-  auto cuda = std::make_shared<singa::CudaGPU>();
-  singa::Tensor t1(singa::Shape{2, 2}, cuda);
-
-  const float dat1[4] = {-1.0f, 1.0f, -2.0f, 3.0f};
-  t1.CopyDataFromHostPtr<float>(dat1, 4);
-
-  auto o1 = ReLUTC2(t1).ToHost();
+  auto o1 = ReLUTC(t1).ToHost();
   EXPECT_EQ(o1.shape(0), 2);
   EXPECT_EQ(o1.shape(1), 2);
   const float *dptr = o1.data<float>();

@@ -587,7 +587,7 @@ void ReLU<float, lang::Cuda>(const Tensor& in, Tensor* out,
 }
 
 template <>
-void ReLUTC2<float, lang::Cuda>(const Tensor &in, Tensor *out, Context *ctx) {
+void ReLUTC<float, lang::Cuda>(const Tensor &in, Tensor *out, Context *ctx) {
   std::string tc = R"TC(
 def relu(float(B,M) I) -> (O1){
   O1(b, m) = fmax(I(b, m), 0)
@@ -597,7 +597,8 @@ def relu(float(B,M) I) -> (O1){
       tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
   auto pExecutor =
       singa::compileTC<tc::CudaBackend>(tc, "relu", {in}, {naiveOptions});
-  std::vector<Tensor> outputs(out, out + 1);
+
+  std::vector<Tensor> outputs (1, *out );
   singa::runTC(*pExecutor, {in}, outputs);
 }
 
