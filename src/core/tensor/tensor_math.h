@@ -227,7 +227,7 @@ void ReLU(const Tensor &in, Tensor *out, Context *ctx) {
 /// out[i]=max(0, in[i])
 template <typename DType, typename Lang>
 void ReLUTC2(const Tensor &in, Tensor *out, Context *ctx) {
-  LOG(FATAL) << "ReLU Not Implemented";
+  LOG(FATAL) << "ReLUTC2 Not Implemented";
 }
 
 /// out[i] = x

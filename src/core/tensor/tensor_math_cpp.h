@@ -392,6 +392,22 @@ void ReLU<float, lang::Cpp>(const Tensor& in, Tensor* out,
 }
 
 template <>
+void ReLUTC2<float, lang::Cpp>(const Tensor& in, Tensor* out,
+                            Context *ctx) {
+  std::string tc = R"TC(
+def relu(float(B,M) I) -> (O1){
+  O1(b, m) = fmax(I(b, m), 0)
+}
+  )TC";
+  auto naiveOptions =
+      tc::CpuBackend::MappingOptionsType::makeNaiveMappingOptions();
+  auto pExecutor =
+      singa::compileTC<tc::CpuBackend>(tc, "relu", {in}, {naiveOptions});
+  std::vector<Tensor> outputs(out, out + 1);
+  singa::runTC(*pExecutor, {in}, outputs);
+}
+
+template <>
 void Set<float, lang::Cpp>(const float x, Tensor* out,
                            Context *ctx) {
   float *outPtr = static_cast<float *>(out->block()->mutable_data());

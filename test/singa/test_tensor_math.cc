@@ -31,6 +31,8 @@
 #include <tc/autotuner/genetic_search.h>
 #include <tc/core/check.h>
 #include <tc/core/cuda/cuda_tc_executor.h>
+#include "tc/core/cpu/cpu_mapping_options.h"
+#include "tc/core/cpu/cpu_tc_executor.h"
 #include <tc/core/flags.h>
 // tensor comprehensions
 
@@ -74,6 +76,28 @@ def tensordot(float(N, C1, C2, H, W) I0,
   at::Tensor I1 = makeATenTensor<tc::CudaBackend>({16, 16, 2, 17, 25});
 
   auto pExecutor = tc::aten::compile<tc::CudaBackend>(tc, "tensordot", {I0, I1},
+                                                      {naiveOptions});
+  auto outputs = tc::aten::prepareOutputs(tc, "tensordot", {I0, I1});
+
+  tc::aten::run(*pExecutor, {I0, I1}, outputs);
+}
+
+TEST_F(TensorMath, TCATenTensordotCPU) {
+  std::string tc = R"TC(
+def tensordot(float(N, C1, C2, H, W) I0,
+              float(N, C2, C3, H, W) I1)  -> (O)
+{
+    O(n, c1, c3, h, w) +=! I0(n, c1, r_c2, h, w) * I1(n, r_c2, c3, h, w)
+}
+  )TC";
+
+  auto naiveOptions =
+      tc::CpuBackend::MappingOptionsType::makeNaiveMappingOptions();
+
+  at::Tensor I0 = makeATenTensor<tc::CpuBackend>({16, 8, 16, 17, 25});
+  at::Tensor I1 = makeATenTensor<tc::CpuBackend>({16, 16, 2, 17, 25});
+
+  auto pExecutor = tc::aten::compile<tc::CpuBackend>(tc, "tensordot", {I0, I1},
                                                       {naiveOptions});
   auto outputs = tc::aten::prepareOutputs(tc, "tensordot", {I0, I1});
 
@@ -136,6 +160,23 @@ TEST_F(TensorMath, TCRelu) {
   t1.CopyDataFromHostPtr<float>(dat1, 4);
 
   auto o1 = ReluTC(t1).ToHost();
+  EXPECT_EQ(o1.shape(0), 2);
+  EXPECT_EQ(o1.shape(1), 2);
+  const float *dptr = o1.data<float>();
+  EXPECT_FLOAT_EQ(0.0f, dptr[0]);
+  EXPECT_FLOAT_EQ(1.0f, dptr[1]);
+  EXPECT_FLOAT_EQ(0.0f, dptr[2]);
+  EXPECT_FLOAT_EQ(3.0f, dptr[3]);
+}
+
+TEST_F(TensorMath, TCReLU2CPU) {
+  auto dev = std::make_shared<singa::CppCPU>();
+  singa::Tensor t1(singa::Shape{2, 2}, dev);
+
+  const float dat1[4] = {-1.0f, 1.0f, -2.0f, 3.0f};
+  t1.CopyDataFromHostPtr<float>(dat1, 4);
+
+  auto o1 = ReLUTC2(t1).ToHost();
   EXPECT_EQ(o1.shape(0), 2);
   EXPECT_EQ(o1.shape(1), 2);
   const float *dptr = o1.data<float>();

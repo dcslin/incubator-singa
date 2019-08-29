@@ -30,6 +30,8 @@
 #include <tc/core/utils/time.h>
 #include <tc/core/cuda/cuda_backend.h>
 #include <tc/core/cuda/cuda_tc_executor.h>
+#include <tc/core/cpu/cpu_mapping_options.h>
+#include <tc/core/cpu/cpu_tc_executor.h>
 
 #include "singa/core/common.h"
 #include "singa/core/device.h"
