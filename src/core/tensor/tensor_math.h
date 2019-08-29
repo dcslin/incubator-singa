@@ -224,6 +224,12 @@ void ReLU(const Tensor &in, Tensor *out, Context *ctx) {
   LOG(FATAL) << "ReLU Not Implemented";
 }
 
+/// out[i]=max(0, in[i])
+template <typename DType, typename Lang>
+void ReLUTC2(const Tensor &in, Tensor *out, Context *ctx) {
+  LOG(FATAL) << "ReLU Not Implemented";
+}
+
 /// out[i] = x
 template <typename DType, typename Lang>
 void Set(const DType x, Tensor *out, Context *ctx) {

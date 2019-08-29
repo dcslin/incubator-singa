@@ -30,6 +30,11 @@
 #include "singa/utils/cuda_utils.h"
 #include <cudnn.h>
 
+#include <tc/core/check.h>
+#include <tc/core/compiler.h>
+#include <tc/core/tc_executor.h>
+#include <tc/core/tensor.h>
+
 #define check_cudnn(expression)                              \
   {                                                          \
     cudnnStatus_t status = (expression);                     \
@@ -579,6 +584,21 @@ void ReLU<float, lang::Cuda>(const Tensor& in, Tensor* out,
     Transform<float, lang::Cuda>(in, out, ctx);
     cuda::relu(num, outPtr, outPtr, ctx->stream);
   }
+}
+
+template <>
+void ReLUTC2<float, lang::Cuda>(const Tensor &in, Tensor *out, Context *ctx) {
+  std::string tc = R"TC(
+def relu(float(B,M) I) -> (O1){
+  O1(b, m) = fmax(I(b, m), 0)
+}
+  )TC";
+  auto naiveOptions =
+      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
+  auto pExecutor =
+      singa::compileTC<tc::CudaBackend>(tc, "relu", {in}, {naiveOptions});
+  std::vector<Tensor> outputs(out, out + 1);
+  singa::runTC(*pExecutor, {in}, outputs);
 }
 
 // /// Element-wise operation, out[i]=sigmoid([in[i])

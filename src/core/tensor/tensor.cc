@@ -703,6 +703,7 @@ GenUnaryTensorFn(Abs);
 GenUnaryTensorFn(Exp);
 GenUnaryTensorFn(Log);
 GenUnaryTensorFn(ReLU);
+GenUnaryTensorFn(ReLUTC2);
 GenUnaryTensorFn(Sigmoid);
 GenUnaryTensorFn(Sign);
 GenUnaryTensorFn(Sqrt);
