@@ -597,9 +597,29 @@ def relu(float(B,M) I) -> (O1){
       tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
   auto pExecutor =
       singa::compileTC<tc::CudaBackend>(tc, "relu", {in}, {naiveOptions});
-
-  std::vector<Tensor> outputs (1, *out );
+  auto outputs = singa::prepareOutputs(tc, "relu", {in});
   singa::runTC(*pExecutor, {in}, outputs);
+  *out = outputs[0];
+}
+
+template <>
+void SoftmaxTC<float, lang::Cuda>(const Tensor &in, Tensor *out, Context *ctx) {
+  std::string tc = 
+    
+    R"TC(
+def softmax(float(N, D) I) -> (O, expsum, maxVal) {
+    maxVal(n) max=!     I(n, d)
+    expsum(n)   +=! exp(I(n, d) - maxVal(n))
+         O(n, d) =  exp(I(n, d) - maxVal(n)) / expsum(n)
+}
+)TC";
+  auto naiveOptions =
+      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
+  auto pExecutor =
+      singa::compileTC<tc::CudaBackend>(tc, "softmax", {in}, {naiveOptions});
+  auto outputs = singa::prepareOutputs(tc, "softmax", {in});
+  singa::runTC(*pExecutor, {in}, outputs);
+  *out = outputs[0];
 }
 
 // /// Element-wise operation, out[i]=sigmoid([in[i])

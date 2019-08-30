@@ -704,6 +704,7 @@ GenUnaryTensorFn(Exp);
 GenUnaryTensorFn(Log);
 GenUnaryTensorFn(ReLU);
 GenUnaryTensorFn(ReLUTC);
+GenUnaryTensorFn(SoftmaxTC);
 GenUnaryTensorFn(Sigmoid);
 GenUnaryTensorFn(Sign);
 GenUnaryTensorFn(Sqrt);
@@ -1456,25 +1457,6 @@ std::vector<Tensor> prepareOutputs(const std::string &tc,
 }
 
 // examples of TC operations
-Tensor SoftMaxTC(const Tensor &in) {
-  std::string tc = 
-    
-    R"TC(
-def softmax(float(N, D) I) -> (O, expsum, maxVal) {
-    maxVal(n) max=!     I(n, d)
-    expsum(n)   +=! exp(I(n, d) - maxVal(n))
-         O(n, d) =  exp(I(n, d) - maxVal(n)) / expsum(n)
-}
-)TC";
-  auto naiveOptions =
-      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
-  auto pExecutor =
-      singa::compileTC<tc::CudaBackend>(tc, "softmax", {in}, {naiveOptions});
-  auto outputs = singa::prepareOutputs(tc, "softmax", {in});
-  singa::runTC(*pExecutor, {in}, outputs);
-  return outputs[0];
-}
-
 Tensor MatMulTC(const Tensor &in1, const Tensor &in2) {
   std::string tc = R"TC(
 def matmul(float(M,N) A, float(N,K) B) -> (output) {

@@ -192,7 +192,7 @@ TEST_F(TensorMath, TCSoftmax) {
   const float dat1[2] = {1.0f, 2.0f};
   t1.CopyDataFromHostPtr<float>(dat1, 2);
 
-  auto output=SoftMaxTC(t1);
+  auto output=SoftmaxTC(t1);
   output.ToHost();
 
   auto optr1=output.data<float>();
