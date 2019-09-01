@@ -32,6 +32,8 @@
 #include <tc/core/check.h>
 #include <tc/core/cuda/cuda_tc_executor.h>
 #include <tc/core/flags.h>
+#include "../src/model/layer/cudnn_softmax.h"
+#include <chrono>
 // tensor comprehensions
 
 using singa::Tensor;
@@ -202,6 +204,42 @@ TEST_F(TensorMath, TCSoftmax) {
   const float *dptr1 = output.data<float>();
   EXPECT_NEAR(0.26894142f, dptr1[0], 1e-5);
   EXPECT_NEAR(0.73105858f, dptr1[1], 1e-5);
+}
+
+TEST_F(TensorMath, SoftmaxBenchmark) {
+  const float x[] = {1.f, 2.f, 0.f, -2.f, -3.f, -1.f};
+  size_t n = sizeof(x) / sizeof(float);
+  size_t batch = 2, c = 3;
+  singa::Shape shape = {batch, c};
+  auto cuda = std::make_shared<singa::CudaGPU>();
+  singa::Tensor in(shape, cuda);
+  in.CopyDataFromHostPtr<float>(x, n);
+
+  int COUNT=100;
+
+  std::chrono::steady_clock::time_point beginTC = std::chrono::steady_clock::now();
+  for(int i=1; i<=COUNT; i++){
+    // TC
+    auto output=SoftmaxTC(in);
+  }
+  std::chrono::steady_clock::time_point endTC = std::chrono::steady_clock::now();
+
+  std::chrono::steady_clock::time_point beginCudnn = std::chrono::steady_clock::now();
+  for(int i=1; i<=COUNT; i++){
+    // cudnn
+    CudnnSoftmax sft;
+    singa::LayerConf conf;
+    singa::SoftmaxConf* softmaxconf = conf.mutable_softmax_conf();
+    softmaxconf->set_algorithm("accurate");
+    sft.Setup(Shape{c}, conf);
+    singa::Tensor out = sft.Forward(singa::kTrain, in);
+  }
+  std::chrono::steady_clock::time_point endCudnn = std::chrono::steady_clock::now();
+
+  std::cout << "TC Time " << std::chrono::duration_cast<std::chrono::nanoseconds> (endTC - beginTC).count() << "[ns]" << std::endl;
+  std::cout << "Cudnn Time " << std::chrono::duration_cast<std::chrono::nanoseconds> (endCudnn - beginCudnn).count() << "[ns]" << std::endl;
+
+
 }
 // Tensor comprehensions ends
 
