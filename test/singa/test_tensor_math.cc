@@ -32,8 +32,11 @@
 #include <tc/core/check.h>
 #include <tc/core/cuda/cuda_tc_executor.h>
 #include <tc/core/flags.h>
-#include "../src/model/layer/cudnn_softmax.h"
 #include <chrono>
+
+#include "../src/model/layer/cudnn_softmax.h"
+#include <cudnn.h>
+using singa::CudnnSoftmax;
 // tensor comprehensions
 
 using singa::Tensor;
@@ -215,31 +218,41 @@ TEST_F(TensorMath, SoftmaxBenchmark) {
   singa::Tensor in(shape, cuda);
   in.CopyDataFromHostPtr<float>(x, n);
 
-  int COUNT=100;
+  int COUNT = 100;
 
-  std::chrono::steady_clock::time_point beginTC = std::chrono::steady_clock::now();
-  for(int i=1; i<=COUNT; i++){
+  std::chrono::steady_clock::time_point beginTC =
+      std::chrono::steady_clock::now();
+  for (int i = 1; i <= COUNT; i++) {
     // TC
-    auto output=SoftmaxTC(in);
+    auto output = SoftmaxTC(in);
   }
-  std::chrono::steady_clock::time_point endTC = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point endTC =
+      std::chrono::steady_clock::now();
 
-  std::chrono::steady_clock::time_point beginCudnn = std::chrono::steady_clock::now();
-  for(int i=1; i<=COUNT; i++){
+  std::chrono::steady_clock::time_point beginCudnn =
+      std::chrono::steady_clock::now();
+  for (int i = 1; i <= COUNT; i++) {
     // cudnn
     CudnnSoftmax sft;
     singa::LayerConf conf;
-    singa::SoftmaxConf* softmaxconf = conf.mutable_softmax_conf();
+    singa::SoftmaxConf *softmaxconf = conf.mutable_softmax_conf();
     softmaxconf->set_algorithm("accurate");
     sft.Setup(Shape{c}, conf);
     singa::Tensor out = sft.Forward(singa::kTrain, in);
   }
-  std::chrono::steady_clock::time_point endCudnn = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point endCudnn =
+      std::chrono::steady_clock::now();
 
-  std::cout << "TC Time " << std::chrono::duration_cast<std::chrono::nanoseconds> (endTC - beginTC).count() << "[ns]" << std::endl;
-  std::cout << "Cudnn Time " << std::chrono::duration_cast<std::chrono::nanoseconds> (endCudnn - beginCudnn).count() << "[ns]" << std::endl;
-
-
+  std::cout << "TC Time    "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(endTC -
+                                                                     beginTC)
+                   .count()
+            << "[ms]" << std::endl;
+  std::cout << "Cudnn Time "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(endCudnn -
+                                                                     beginCudnn)
+                   .count()
+            << "[ms]" << std::endl;
 }
 // Tensor comprehensions ends
 
