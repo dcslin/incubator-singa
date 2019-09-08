@@ -23,6 +23,7 @@
 
 // tensor comprehensions
 #include <tc/core/cuda/cuda_mapping_options.h>
+#include <tc/core/cpu/cpu_mapping_options.h>
 #include <ATen/ATen.h>
 #include <tc/examples/common.h>
 #include <tc/aten/aten.h>
@@ -31,6 +32,7 @@
 #include <tc/autotuner/genetic_search.h>
 #include <tc/core/check.h>
 #include <tc/core/cuda/cuda_tc_executor.h>
+#include <tc/core/cpu/cpu_tc_executor.h>
 #include <tc/core/flags.h>
 #include <chrono>
 
@@ -63,7 +65,8 @@ class TensorMath : public ::testing::Test {
 
 // tensor comprehensions starts
 // smoke test on ATen tensordot
-TEST_F(TensorMath, TCATenTensordot) {
+template <typename TCBackend>
+void testNativeTCBackend() {
   std::string tc = R"TC(
 def tensordot(float(N, C1, C2, H, W) I0,
               float(N, C2, C3, H, W) I1)  -> (O)
@@ -73,16 +76,22 @@ def tensordot(float(N, C1, C2, H, W) I0,
   )TC";
 
   auto naiveOptions =
-      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
+      TCBackend::MappingOptionsType::makeNaiveMappingOptions();
 
-  at::Tensor I0 = makeATenTensor<tc::CudaBackend>({16, 8, 16, 17, 25});
-  at::Tensor I1 = makeATenTensor<tc::CudaBackend>({16, 16, 2, 17, 25});
+  at::Tensor I0 = makeATenTensor<TCBackend>({16, 8, 16, 17, 25});
+  at::Tensor I1 = makeATenTensor<TCBackend>({16, 16, 2, 17, 25});
 
-  auto pExecutor = tc::aten::compile<tc::CudaBackend>(tc, "tensordot", {I0, I1},
+  auto pExecutor = tc::aten::compile<TCBackend>(tc, "tensordot", {I0, I1},
                                                       {naiveOptions});
   auto outputs = tc::aten::prepareOutputs(tc, "tensordot", {I0, I1});
 
   tc::aten::run(*pExecutor, {I0, I1}, outputs);
+  std::cout<<"ok";
+}
+
+TEST_F(TensorMath, TCATenTensordot) {
+  testNativeTCBackend<tc::CudaBackend>();
+  testNativeTCBackend<tc::CpuBackend>();
 }
 
 // compare dlpack tensor conversion between aten, singa
@@ -108,10 +117,10 @@ TEST_F(TensorMath, TCToDLPack) {
   EXPECT_EQ(dl_target->dl_tensor.byte_offset, dl_output->dl_tensor.byte_offset);
 }
 
-TEST_F(TensorMath, TCTensordot) {
-  auto cuda = std::make_shared<singa::CudaGPU>();
-  singa::Tensor t1(singa::Shape{16, 8, 16, 17, 25}, cuda);
-  singa::Tensor t2(singa::Shape{16, 16, 2, 17, 25}, cuda);
+template <typename TCBackend>
+void tcTestBackend(std::shared_ptr<singa::Device> dev) {
+  singa::Tensor t1(singa::Shape{16, 8, 16, 17, 25}, dev);
+  singa::Tensor t2(singa::Shape{16, 16, 2, 17, 25}, dev);
 
   t1.SetValue(1.1f);
   t2.SetValue(1.2f);
@@ -125,12 +134,19 @@ def tensordot(float(N, C1, C2, H, W) I0,
   )TC";
 
   auto naiveOptions =
-      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
+      TCBackend::MappingOptionsType::makeNaiveMappingOptions();
 
-  auto pExecutor = singa::compileTC<tc::CudaBackend>(tc, "tensordot", {t1, t2},
+  auto pExecutor = singa::compileTC<TCBackend>(tc, "tensordot", {t1, t2},
                                                      {naiveOptions});
   auto outputs = singa::prepareOutputs(tc, "tensordot", {t1, t2});
   singa::runTC(*pExecutor, {t1, t2}, outputs);
+}
+
+TEST_F(TensorMath, TCTensordot) {
+  auto cpu = std::make_shared<singa::CppCPU>();
+  tcTestBackend<tc::CpuBackend>(cpu);
+  auto cuda = std::make_shared<singa::CudaGPU>();
+  tcTestBackend<tc::CudaBackend>(cuda);
 }
 
 TEST_F(TensorMath, TCReLU) {
