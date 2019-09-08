@@ -705,6 +705,23 @@ GenUnaryTensorFn(Log);
 GenUnaryTensorFn(ReLU);
 GenUnaryTensorFn(ReLUTC);
 GenUnaryTensorFn(SoftmaxTC);
+
+
+// softmax bwd tc
+Tensor SoftmaxBwdTC(const Tensor &y, const Tensor &dy) {
+  Tensor ret(y.shape(), y.device(), y.data_type());
+  auto *retptr = &ret;
+
+  TYPE_LANG_SWITCH(y.data_type(), DType, y.device()->lang(), Lang, {
+    retptr->device()->Exec(
+        [y, dy, retptr](Context *ctx) {
+          SoftmaxBwdTC<DType, Lang>(y, dy, retptr, ctx);
+        },
+        {y.block(), dy.block()}, {retptr->block()});
+  });
+  return ret;
+}
+
 GenUnaryTensorFn(Sigmoid);
 GenUnaryTensorFn(Sign);
 GenUnaryTensorFn(Sqrt);

@@ -352,6 +352,7 @@ Tensor Log(const Tensor &in);
 Tensor ReLU(const Tensor &in);
 Tensor ReLUTC(const Tensor &in);
 Tensor SoftmaxTC(const Tensor &in);
+Tensor SoftmaxBwdTC(const Tensor &y, const Tensor &dy);
 Tensor Sigmoid(const Tensor &in);
 Tensor Sign(const Tensor &in);
 Tensor Sqrt(const Tensor &in);

@@ -209,6 +209,48 @@ TEST_F(TensorMath, TCSoftmax) {
   EXPECT_NEAR(0.73105858f, dptr1[1], 1e-5);
 }
 
+TEST_F(TensorMath, SoftmaxBwdTC) {
+  const float x[] = {1.f, 2.f, 0.f, -2.f, -3.f, -1.f};
+  const float grad[] = {2.0f, -3.0f, 1.0f, 3.0f, -1.0f, -2.0f};
+
+  size_t n = sizeof(x) / sizeof(float);
+  size_t batch = 2, c = 3;
+
+  singa::Shape shape = {batch, c};
+  auto cuda = std::make_shared<singa::CudaGPU>();
+
+  singa::Tensor in(shape, cuda);
+  in.CopyDataFromHostPtr<float>(x, n);
+  singa::Tensor output_grad(shape, cuda);
+  output_grad.CopyDataFromHostPtr<float>(grad, n);
+
+  auto output = SoftmaxTC(in);
+  auto in_grad = SoftmaxBwdTC(output, output_grad);
+
+  in_grad.ToHost();
+  const float *xptr = in_grad.data<float>();
+
+  output.ToHost();
+  const float* yptr = output.data<float>();
+  std::cout << "ok" << xptr[0] << std::endl;
+
+  float* dx = new float[n];
+  float* sigma = new float[batch];
+  for (size_t i = 0; i < batch; i++)
+    sigma[i] = 0.f;
+  for (size_t i = 0; i < n; i++)
+    sigma[i / c] += grad[i] * yptr[i];
+  for (size_t i = 0; i < batch; i++)
+    for (size_t j = 0; j < c; j++)
+      dx[i * c + j] = (grad[i * c + j] - sigma[i]) * yptr[i * c +j];
+  EXPECT_FLOAT_EQ(dx[0], xptr[0]);
+  EXPECT_FLOAT_EQ(dx[1], xptr[1]);
+  EXPECT_FLOAT_EQ(dx[2], xptr[2]);
+  EXPECT_FLOAT_EQ(dx[3], xptr[3]);
+  EXPECT_FLOAT_EQ(dx[4], xptr[4]);
+  EXPECT_FLOAT_EQ(dx[5], xptr[5]);
+}
+
 TEST_F(TensorMath, SoftmaxBenchmark) {
   const float x[] = {1.f, 2.f, 0.f, -2.f, -3.f, -1.f};
   size_t n = sizeof(x) / sizeof(float);

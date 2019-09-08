@@ -622,6 +622,27 @@ def softmax(float(N, D) I) -> (O, expsum, maxVal) {
   *out = outputs[0];
 }
 
+template <>
+void SoftmaxBwdTC<float, lang::Cuda>(const Tensor &y, const Tensor &dy,
+                                     Tensor *out, Context *ctx) {
+  std::string tc = 
+    
+    R"TC(
+def softmax_dx(float(N, D) output, float(N, D) grad_output) -> (grad_input, sigma)
+{
+  sigma(n) +=! output(n, d) * grad_output(n ,d)
+  grad_input(n, d) = ( grad_output(n, d) - sigma(n) ) * output(n, d)
+}
+)TC";
+  auto naiveOptions =
+      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
+  auto pExecutor =
+      singa::compileTC<tc::CudaBackend>(tc, "softmax_dx", {y, dy}, {naiveOptions});
+  auto outputs = singa::prepareOutputs(tc, "softmax_dx", {y, dy});
+  singa::runTC(*pExecutor, {y, dy}, outputs);
+  *out = outputs[0];
+}
+
 // /// Element-wise operation, out[i]=sigmoid([in[i])
 // template <>
 // void Sigmoid<float, lang::Cuda>(const Tensor& in, Tensor* out,

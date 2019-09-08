@@ -235,6 +235,12 @@ void SoftmaxTC(const Tensor &in, Tensor *out, Context *ctx) {
   LOG(FATAL) << "Softmax TC Not Implemented";
 }
 
+template <typename DType, typename Lang>
+void SoftmaxBwdTC(const Tensor &y, const Tensor &dy, Tensor *out,
+                  Context *ctx) {
+  LOG(FATAL) << "Softmax TC Not Implemented";
+}
+
 /// out[i] = x
 template <typename DType, typename Lang>
 void Set(const DType x, Tensor *out, Context *ctx) {
