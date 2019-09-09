@@ -868,6 +868,24 @@ void RowMax<float, lang::Cpp>(const Tensor& in, Tensor *out, Context *ctx) {
   }
 }
 
+/* TC Integration */
+template <>
+void ReLUTC<float, lang::Cpp>(const Tensor &in, Tensor *out, Context *ctx) {
+  std::string tc = R"TC(
+def relu(float(B,M) I) -> (O1){
+  O1(b, m) = fmax(I(b, m), 0)
+}
+  )TC";
+  auto naiveOptions =
+      tc::CpuBackend::MappingOptionsType::makeNaiveMappingOptions();
+  auto pExecutor =
+      singa::compileTC<tc::CpuBackend>(tc, "relu", {in}, {naiveOptions});
+  auto outputs = singa::prepareOutputs(tc, "relu", {in});
+  singa::runTC(*pExecutor, {in}, outputs);
+  *out = outputs[0];
+}
+
+
 // =========Matrix operations ================================================
 /*
 template <>

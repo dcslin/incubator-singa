@@ -142,6 +142,34 @@ def tensordot(float(N, C1, C2, H, W) I0,
   singa::runTC(*pExecutor, {t1, t2}, outputs);
 }
 
+TEST_F(TensorMath, MYTEST) {
+  singa::Tensor t2(singa::Shape{2, 2}, std::make_shared<singa::CppCPU>() );
+  const float dat1[4] = {-1.0f, 1.0f, -2.0f, 3.0f};
+  t2.CopyDataFromHostPtr<float>(dat1, 4);
+
+  std::string tc = R"TC(
+def copy(float(B,M) I) -> (O1){
+  O1(b,m) = I(b,m)
+}
+  )TC";
+  auto naiveOptions =
+      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
+  auto pExecutor =
+      singa::compileTC<tc::CudaBackend>(tc, "copy", {t2}, {naiveOptions});
+  auto outputs = singa::prepareOutputs(tc, "copy", {t2});
+  singa::runTC(*pExecutor, {t2}, outputs);
+  auto out = outputs[0];
+  const float *dptr = out.data<float>();
+  const float *dptr2 = t2.data<float>();
+  std::cout<<"copy(cpu): ";
+  for (int i=0;i<4;i++){
+    std::cout<<i<<":"<<dptr[i]<<"\n";
+  }
+  for (int i=0;i<4;i++){
+    std::cout<<i<<"cpu:"<<dptr2[i]<<"\n";
+  }
+}
+
 TEST_F(TensorMath, TCTensordot) {
   auto cpu = std::make_shared<singa::CppCPU>();
   tcTestBackend<tc::CpuBackend>(cpu);
@@ -164,6 +192,19 @@ TEST_F(TensorMath, TCReLU) {
   EXPECT_FLOAT_EQ(1.0f, dptr[1]);
   EXPECT_FLOAT_EQ(0.0f, dptr[2]);
   EXPECT_FLOAT_EQ(3.0f, dptr[3]);
+
+
+  singa::Tensor t2(singa::Shape{2, 2}, std::make_shared<singa::CppCPU>() );
+  t2.CopyDataFromHostPtr<float>(dat1, 4);
+
+  auto o2 = ReLUTC(t2);
+  EXPECT_EQ(o2.shape(0), 2);
+  EXPECT_EQ(o2.shape(1), 2);
+  const float *dptr2 = o2.data<float>();
+  EXPECT_FLOAT_EQ(0.0f, dptr2[0]);
+  EXPECT_FLOAT_EQ(1.0f, dptr2[1]);
+  EXPECT_FLOAT_EQ(0.0f, dptr2[2]);
+  EXPECT_FLOAT_EQ(3.0f, dptr2[3]);
 }
 
 TEST_F(TensorMath, TCMatmul) {
