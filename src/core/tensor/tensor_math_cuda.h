@@ -30,11 +30,6 @@
 #include "singa/utils/cuda_utils.h"
 #include <cudnn.h>
 
-#include <tc/core/check.h>
-#include <tc/core/compiler.h>
-#include <tc/core/tc_executor.h>
-#include <tc/core/tensor.h>
-
 #define check_cudnn(expression)                              \
   {                                                          \
     cudnnStatus_t status = (expression);                     \
@@ -585,7 +580,6 @@ void ReLU<float, lang::Cuda>(const Tensor& in, Tensor* out,
     cuda::relu(num, outPtr, outPtr, ctx->stream);
   }
 }
-
 
 // /// Element-wise operation, out[i]=sigmoid([in[i])
 // template <>

@@ -19,26 +19,6 @@
 #include "gtest/gtest.h"
 #include "singa/core/tensor.h"
 
-//#include <iostream>
-
-// tensor comprehensions
-//#include <tc/core/cuda/cuda_mapping_options.h>
-//#include <ATen/ATen.h>
-//#include <tc/examples/common.h>
-//#include <tc/aten/aten.h>
-//#include <tc/aten/aten_autotuner.h>
-//#include <tc/aten/aten_compiler.h>
-//#include <tc/autotuner/genetic_search.h>
-//#include <tc/core/check.h>
-//#include <tc/core/cuda/cuda_tc_executor.h>
-//#include <tc/core/flags.h>
-//#include <chrono>
-//
-//#include "../src/model/layer/cudnn_softmax.h"
-//#include <cudnn.h>
-//using singa::CudnnSoftmax;
-// tensor comprehensions
-
 using singa::Tensor;
 using singa::Shape;
 using singa::Device;
@@ -60,69 +40,6 @@ class TensorMath : public ::testing::Test {
   const float dat1[6] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
   const float dat2[6] = {1.1f, 2.1f, 3.1f, 4.1f, 5.1f, 6.1f};
 };
-
-// tensor comprehensions starts
-/*
-TEST_F(TensorMath, TCReLU) {
-  auto cuda = std::make_shared<singa::CudaGPU>();
-  singa::Tensor t1(singa::Shape{2, 2}, cuda);
-
-  const float dat1[4] = {-1.0f, 1.0f, -2.0f, 3.0f};
-  t1.CopyDataFromHostPtr<float>(dat1, 4);
-
-  auto o1 = ReLUTC(t1).ToHost();
-  EXPECT_EQ(o1.shape(0), 2);
-  EXPECT_EQ(o1.shape(1), 2);
-  const float *dptr = o1.data<float>();
-  EXPECT_FLOAT_EQ(0.0f, dptr[0]);
-  EXPECT_FLOAT_EQ(1.0f, dptr[1]);
-  EXPECT_FLOAT_EQ(0.0f, dptr[2]);
-  EXPECT_FLOAT_EQ(3.0f, dptr[3]);
-}
-
-TEST_F(TensorMath, TCMatmul) {
-  auto cuda = std::make_shared<singa::CudaGPU>();
-  singa::Tensor t1(singa::Shape{2, 2}, cuda);
-  singa::Tensor t2(singa::Shape{2, 2}, cuda);
-  t1.SetValue(1.1f);
-  t2.SetValue(1.2f);
-
-  auto o1 = MatMulTC(t1, t2).ToHost();
-  EXPECT_EQ(o1.shape(0), 2);
-  EXPECT_EQ(o1.shape(1), 2);
-  const float *dptr = o1.data<float>();
-  EXPECT_FLOAT_EQ(2.64f, dptr[0]);
-  EXPECT_FLOAT_EQ(2.64f, dptr[1]);
-  EXPECT_FLOAT_EQ(2.64f, dptr[2]);
-  EXPECT_FLOAT_EQ(2.64f, dptr[3]);
-}
-
-TEST_F(TensorMath, TCFC) {
-  auto cuda = std::make_shared<singa::CudaGPU>();
-  singa::Tensor x(singa::Shape{2, 3}, cuda);
-  singa::Tensor W(singa::Shape{4, 3}, cuda);
-  singa::Tensor b(singa::Shape{4}, cuda);
-  x.SetValue(1.1f);
-  W.SetValue(1.2f);
-  b.SetValue(1.3f);
-
-  auto o1 = FCTC(x, W, b).ToHost();
-  EXPECT_EQ(o1.shape(0), 2);
-  EXPECT_EQ(o1.shape(1), 4);
-  const float *dptr = o1.data<float>();
-  EXPECT_FLOAT_EQ(5.26f, dptr[0]);
-  EXPECT_FLOAT_EQ(5.26f, dptr[1]);
-  EXPECT_FLOAT_EQ(5.26f, dptr[2]);
-  EXPECT_FLOAT_EQ(5.26f, dptr[3]);
-  EXPECT_FLOAT_EQ(5.26f, dptr[4]);
-  EXPECT_FLOAT_EQ(5.26f, dptr[5]);
-  EXPECT_FLOAT_EQ(5.26f, dptr[6]);
-  EXPECT_FLOAT_EQ(5.26f, dptr[7]);
-}
-*/
-
-// Tensor comprehensions ends
-
 
 TEST_F(TensorMath, AbsCpp) {
   Tensor aa = a.Clone();

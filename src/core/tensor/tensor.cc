@@ -21,7 +21,6 @@
 #include "./tensor_math_cpp.h"
 #include "./tensor_math_cuda.h"
 #include "./tensor_math_opencl.h"
-
 #include <utility>
 #include <algorithm>
 
