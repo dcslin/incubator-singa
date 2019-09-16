@@ -19,24 +19,24 @@
 #include "gtest/gtest.h"
 #include "singa/core/tensor.h"
 
-#include <iostream>
+//#include <iostream>
 
 // tensor comprehensions
-#include <tc/core/cuda/cuda_mapping_options.h>
-#include <ATen/ATen.h>
-#include <tc/examples/common.h>
-#include <tc/aten/aten.h>
-#include <tc/aten/aten_autotuner.h>
-#include <tc/aten/aten_compiler.h>
-#include <tc/autotuner/genetic_search.h>
-#include <tc/core/check.h>
-#include <tc/core/cuda/cuda_tc_executor.h>
-#include <tc/core/flags.h>
-#include <chrono>
-
-#include "../src/model/layer/cudnn_softmax.h"
-#include <cudnn.h>
-using singa::CudnnSoftmax;
+//#include <tc/core/cuda/cuda_mapping_options.h>
+//#include <ATen/ATen.h>
+//#include <tc/examples/common.h>
+//#include <tc/aten/aten.h>
+//#include <tc/aten/aten_autotuner.h>
+//#include <tc/aten/aten_compiler.h>
+//#include <tc/autotuner/genetic_search.h>
+//#include <tc/core/check.h>
+//#include <tc/core/cuda/cuda_tc_executor.h>
+//#include <tc/core/flags.h>
+//#include <chrono>
+//
+//#include "../src/model/layer/cudnn_softmax.h"
+//#include <cudnn.h>
+//using singa::CudnnSoftmax;
 // tensor comprehensions
 
 using singa::Tensor;
@@ -62,77 +62,7 @@ class TensorMath : public ::testing::Test {
 };
 
 // tensor comprehensions starts
-// smoke test on ATen tensordot
-TEST_F(TensorMath, TCATenTensordot) {
-  std::string tc = R"TC(
-def tensordot(float(N, C1, C2, H, W) I0,
-              float(N, C2, C3, H, W) I1)  -> (O)
-{
-    O(n, c1, c3, h, w) +=! I0(n, c1, r_c2, h, w) * I1(n, r_c2, c3, h, w)
-}
-  )TC";
-
-  auto naiveOptions =
-      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
-
-  at::Tensor I0 = makeATenTensor<tc::CudaBackend>({16, 8, 16, 17, 25});
-  at::Tensor I1 = makeATenTensor<tc::CudaBackend>({16, 16, 2, 17, 25});
-
-  auto pExecutor = tc::aten::compile<tc::CudaBackend>(tc, "tensordot", {I0, I1},
-                                                      {naiveOptions});
-  auto outputs = tc::aten::prepareOutputs(tc, "tensordot", {I0, I1});
-
-  tc::aten::run(*pExecutor, {I0, I1}, outputs);
-}
-
-// compare dlpack tensor conversion between aten, singa
-TEST_F(TensorMath, TCToDLPack) {
-  at::Tensor I0 = makeATenTensor<tc::CudaBackend>({3, 4, 5});
-  auto dl_target = at::toDLPack(I0);
-
-  auto cuda = std::make_shared<singa::CudaGPU>();
-  singa::Tensor t1(singa::Shape{3, 4, 5}, cuda);
-  t1.SetValue(1.1f);
-  auto dl_output = toDLPack(t1);
-
-  EXPECT_EQ(dl_target->dl_tensor.ndim, dl_output->dl_tensor.ndim);
-  EXPECT_EQ(dl_target->dl_tensor.dtype.code, dl_output->dl_tensor.dtype.code);
-  EXPECT_EQ(dl_target->dl_tensor.dtype.bits, dl_output->dl_tensor.dtype.bits);
-  EXPECT_EQ(dl_target->dl_tensor.dtype.lanes, dl_output->dl_tensor.dtype.lanes);
-  EXPECT_EQ(dl_target->dl_tensor.shape[0], dl_output->dl_tensor.shape[0]);
-  EXPECT_EQ(dl_target->dl_tensor.shape[1], dl_output->dl_tensor.shape[1]);
-  EXPECT_EQ(dl_target->dl_tensor.shape[2], dl_output->dl_tensor.shape[2]);
-  EXPECT_EQ(dl_target->dl_tensor.strides[0], dl_output->dl_tensor.strides[0]);
-  EXPECT_EQ(dl_target->dl_tensor.strides[1], dl_output->dl_tensor.strides[1]);
-  EXPECT_EQ(dl_target->dl_tensor.strides[2], dl_output->dl_tensor.strides[2]);
-  EXPECT_EQ(dl_target->dl_tensor.byte_offset, dl_output->dl_tensor.byte_offset);
-}
-
-TEST_F(TensorMath, TCTensordot) {
-  auto cuda = std::make_shared<singa::CudaGPU>();
-  singa::Tensor t1(singa::Shape{16, 8, 16, 17, 25}, cuda);
-  singa::Tensor t2(singa::Shape{16, 16, 2, 17, 25}, cuda);
-
-  t1.SetValue(1.1f);
-  t2.SetValue(1.2f);
-
-  std::string tc = R"TC(
-def tensordot(float(N, C1, C2, H, W) I0,
-              float(N, C2, C3, H, W) I1)  -> (O)
-{
-    O(n, c1, c3, h, w) +=! I0(n, c1, r_c2, h, w) * I1(n, r_c2, c3, h, w)
-}
-  )TC";
-
-  auto naiveOptions =
-      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
-
-  auto pExecutor = singa::compileTC<tc::CudaBackend>(tc, "tensordot", {t1, t2},
-                                                     {naiveOptions});
-  auto outputs = singa::prepareOutputs(tc, "tensordot", {t1, t2});
-  singa::runTC(*pExecutor, {t1, t2}, outputs);
-}
-
+/*
 TEST_F(TensorMath, TCReLU) {
   auto cuda = std::make_shared<singa::CudaGPU>();
   singa::Tensor t1(singa::Shape{2, 2}, cuda);
@@ -189,113 +119,8 @@ TEST_F(TensorMath, TCFC) {
   EXPECT_FLOAT_EQ(5.26f, dptr[6]);
   EXPECT_FLOAT_EQ(5.26f, dptr[7]);
 }
+*/
 
-TEST_F(TensorMath, TCSoftmax) {
-  auto cuda = std::make_shared<singa::CudaGPU>();
-  singa::Tensor t1(singa::Shape{1,2}, cuda);
-
-  const float dat1[2] = {1.0f, 2.0f};
-  t1.CopyDataFromHostPtr<float>(dat1, 2);
-
-  auto output=SoftmaxTC(t1);
-  output.ToHost();
-
-  auto optr1=output.data<float>();
-
-  EXPECT_EQ(output.shape(0), 1);
-  EXPECT_EQ(output.shape(1), 2);
-  const float *dptr1 = output.data<float>();
-  EXPECT_NEAR(0.26894142f, dptr1[0], 1e-5);
-  EXPECT_NEAR(0.73105858f, dptr1[1], 1e-5);
-}
-
-TEST_F(TensorMath, SoftmaxBwdTC) {
-  const float x[] = {1.f, 2.f, 0.f, -2.f, -3.f, -1.f};
-  const float grad[] = {2.0f, -3.0f, 1.0f, 3.0f, -1.0f, -2.0f};
-
-  size_t n = sizeof(x) / sizeof(float);
-  size_t batch = 2, c = 3;
-
-  singa::Shape shape = {batch, c};
-  auto cuda = std::make_shared<singa::CudaGPU>();
-
-  singa::Tensor in(shape, cuda);
-  in.CopyDataFromHostPtr<float>(x, n);
-  singa::Tensor output_grad(shape, cuda);
-  output_grad.CopyDataFromHostPtr<float>(grad, n);
-
-  auto output = SoftmaxTC(in);
-  auto in_grad = SoftmaxBwdTC(output, output_grad);
-
-  in_grad.ToHost();
-  const float *xptr = in_grad.data<float>();
-
-  output.ToHost();
-  const float* yptr = output.data<float>();
-  std::cout << "ok" << xptr[0] << std::endl;
-
-  float* dx = new float[n];
-  float* sigma = new float[batch];
-  for (size_t i = 0; i < batch; i++)
-    sigma[i] = 0.f;
-  for (size_t i = 0; i < n; i++)
-    sigma[i / c] += grad[i] * yptr[i];
-  for (size_t i = 0; i < batch; i++)
-    for (size_t j = 0; j < c; j++)
-      dx[i * c + j] = (grad[i * c + j] - sigma[i]) * yptr[i * c +j];
-  EXPECT_FLOAT_EQ(dx[0], xptr[0]);
-  EXPECT_FLOAT_EQ(dx[1], xptr[1]);
-  EXPECT_FLOAT_EQ(dx[2], xptr[2]);
-  EXPECT_FLOAT_EQ(dx[3], xptr[3]);
-  EXPECT_FLOAT_EQ(dx[4], xptr[4]);
-  EXPECT_FLOAT_EQ(dx[5], xptr[5]);
-}
-
-TEST_F(TensorMath, SoftmaxBenchmark) {
-  const float x[] = {1.f, 2.f, 0.f, -2.f, -3.f, -1.f};
-  size_t n = sizeof(x) / sizeof(float);
-  size_t batch = 2, c = 3;
-  singa::Shape shape = {batch, c};
-  auto cuda = std::make_shared<singa::CudaGPU>();
-  singa::Tensor in(shape, cuda);
-  in.CopyDataFromHostPtr<float>(x, n);
-
-  int COUNT = 100;
-
-  std::chrono::steady_clock::time_point beginTC =
-      std::chrono::steady_clock::now();
-  for (int i = 1; i <= COUNT; i++) {
-    // TC
-    auto output = SoftmaxTC(in);
-  }
-  std::chrono::steady_clock::time_point endTC =
-      std::chrono::steady_clock::now();
-
-  std::chrono::steady_clock::time_point beginCudnn =
-      std::chrono::steady_clock::now();
-  for (int i = 1; i <= COUNT; i++) {
-    // cudnn
-    CudnnSoftmax sft;
-    singa::LayerConf conf;
-    singa::SoftmaxConf *softmaxconf = conf.mutable_softmax_conf();
-    softmaxconf->set_algorithm("accurate");
-    sft.Setup(Shape{c}, conf);
-    singa::Tensor out = sft.Forward(singa::kTrain, in);
-  }
-  std::chrono::steady_clock::time_point endCudnn =
-      std::chrono::steady_clock::now();
-
-  std::cout << "TC Time    "
-            << std::chrono::duration_cast<std::chrono::milliseconds>(endTC -
-                                                                     beginTC)
-                   .count()
-            << "[ms]" << std::endl;
-  std::cout << "Cudnn Time "
-            << std::chrono::duration_cast<std::chrono::milliseconds>(endCudnn -
-                                                                     beginCudnn)
-                   .count()
-            << "[ms]" << std::endl;
-}
 // Tensor comprehensions ends
 
 

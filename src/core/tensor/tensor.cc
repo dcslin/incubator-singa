@@ -703,25 +703,6 @@ GenUnaryTensorFn(Abs);
 GenUnaryTensorFn(Exp);
 GenUnaryTensorFn(Log);
 GenUnaryTensorFn(ReLU);
-GenUnaryTensorFn(ReLUTC);
-GenUnaryTensorFn(SoftmaxTC);
-
-
-// softmax bwd tc
-Tensor SoftmaxBwdTC(const Tensor &y, const Tensor &dy) {
-  Tensor ret(y.shape(), y.device(), y.data_type());
-  auto *retptr = &ret;
-
-  TYPE_LANG_SWITCH(y.data_type(), DType, y.device()->lang(), Lang, {
-    retptr->device()->Exec(
-        [y, dy, retptr](Context *ctx) {
-          SoftmaxBwdTC<DType, Lang>(y, dy, retptr, ctx);
-        },
-        {y.block(), dy.block()}, {retptr->block()});
-  });
-  return ret;
-}
-
 GenUnaryTensorFn(Sigmoid);
 GenUnaryTensorFn(Sign);
 GenUnaryTensorFn(Sqrt);
@@ -1471,38 +1452,6 @@ std::vector<Tensor> prepareOutputs(const std::string &tc,
     outputs.push_back(tmp);
   }
   return outputs;
-}
-
-// examples of TC operations
-Tensor MatMulTC(const Tensor &in1, const Tensor &in2) {
-  std::string tc = R"TC(
-def matmul(float(M,N) A, float(N,K) B) -> (output) {
-  output(i, j) +=! A(i, kk) * B(kk, j)
-}
-  )TC";
-  auto naiveOptions =
-      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
-  auto pExecutor = singa::compileTC<tc::CudaBackend>(tc, "matmul", {in1, in2},
-                                                     {naiveOptions});
-  auto outputs = singa::prepareOutputs(tc, "matmul", {in1, in2});
-  singa::runTC(*pExecutor, {in1, in2}, outputs);
-  return outputs[0];
-}
-
-Tensor FCTC(const Tensor &x, const Tensor &W, const Tensor &b) {
-  std::string tc = R"TC(
-def fc(float(B,M) I, float(N,M) W1, float(N) B1) -> (O1) {
-  O1(b, n) +=! I(b, m) * W1(n, m)
-  O1(b, n) = O1(b, n) + B1(n)
-}
-  )TC";
-  auto naiveOptions =
-      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
-  auto pExecutor =
-      singa::compileTC<tc::CudaBackend>(tc, "fc", {x, W, b}, {naiveOptions});
-  auto outputs = singa::prepareOutputs(tc, "fc", {x, W, b});
-  singa::runTC(*pExecutor, {x, W, b}, outputs);
-  return outputs[0];
 }
 /// tc integration end
 

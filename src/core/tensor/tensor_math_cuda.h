@@ -586,62 +586,6 @@ void ReLU<float, lang::Cuda>(const Tensor& in, Tensor* out,
   }
 }
 
-template <>
-void ReLUTC<float, lang::Cuda>(const Tensor &in, Tensor *out, Context *ctx) {
-  std::string tc = R"TC(
-def relu(float(B,M) I) -> (O1){
-  O1(b, m) = fmax(I(b, m), 0)
-}
-  )TC";
-  auto naiveOptions =
-      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
-  auto pExecutor =
-      singa::compileTC<tc::CudaBackend>(tc, "relu", {in}, {naiveOptions});
-  auto outputs = singa::prepareOutputs(tc, "relu", {in});
-  singa::runTC(*pExecutor, {in}, outputs);
-  *out = outputs[0];
-}
-
-template <>
-void SoftmaxTC<float, lang::Cuda>(const Tensor &in, Tensor *out, Context *ctx) {
-  std::string tc = 
-    
-    R"TC(
-def softmax(float(N, D) I) -> (O, expsum, maxVal) {
-    maxVal(n) max=!     I(n, d)
-    expsum(n)   +=! exp(I(n, d) - maxVal(n))
-         O(n, d) =  exp(I(n, d) - maxVal(n)) / expsum(n)
-}
-)TC";
-  auto naiveOptions =
-      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
-  auto pExecutor =
-      singa::compileTC<tc::CudaBackend>(tc, "softmax", {in}, {naiveOptions});
-  auto outputs = singa::prepareOutputs(tc, "softmax", {in});
-  singa::runTC(*pExecutor, {in}, outputs);
-  *out = outputs[0];
-}
-
-template <>
-void SoftmaxBwdTC<float, lang::Cuda>(const Tensor &y, const Tensor &dy,
-                                     Tensor *out, Context *ctx) {
-  std::string tc = 
-    
-    R"TC(
-def softmax_dx(float(N, D) output, float(N, D) grad_output) -> (grad_input, sigma)
-{
-  sigma(n) +=! output(n, d) * grad_output(n ,d)
-  grad_input(n, d) = ( grad_output(n, d) - sigma(n) ) * output(n, d)
-}
-)TC";
-  auto naiveOptions =
-      tc::CudaBackend::MappingOptionsType::makeNaiveMappingOptions();
-  auto pExecutor =
-      singa::compileTC<tc::CudaBackend>(tc, "softmax_dx", {y, dy}, {naiveOptions});
-  auto outputs = singa::prepareOutputs(tc, "softmax_dx", {y, dy});
-  singa::runTC(*pExecutor, {y, dy}, outputs);
-  *out = outputs[0];
-}
 
 // /// Element-wise operation, out[i]=sigmoid([in[i])
 // template <>
