@@ -152,25 +152,24 @@ ENDIF()
 
 
 ### Tensor comprehensions
-### Tensor comprehensions
-### Tensor comprehensions
-# the path should be consistent with the inlcude path in src
 INCLUDE_DIRECTORIES(/root/TensorComprehensions)
 INCLUDE_DIRECTORIES(/root/TensorComprehensions/tc/version)
 INCLUDE_DIRECTORIES(/root/TensorComprehensions/build)
-
 # polyhedral model required
 INCLUDE_DIRECTORIES(/root/TensorComprehensions/isl_interface/include)
-
 # dlpack
 INCLUDE_DIRECTORIES(/root/TensorComprehensions/third-party/dlpack/include)
+# islpp
+INCLUDE_DIRECTORIES(/root/TensorComprehensions/third-party/islpp/include)
+# gflags
+INCLUDE_DIRECTORIES(/root/TensorComprehensions/build/third-party/googlelibraries/gflags/include)
+# glog
+INCLUDE_DIRECTORIES(/root/TensorComprehensions/build/third-party/googlelibraries/glog)
 # Halide
 INCLUDE_DIRECTORIES(/root/conda/envs/tc_build/include/Halide)
-
 # llvm
 INCLUDE_DIRECTORIES(/root/conda/envs/tc_build/include)
-
-# torch ATen header TO DELETE
+# torch ATen header
 INCLUDE_DIRECTORIES(/root/conda/envs/tc_build/lib/python3.6/site-packages/torch/lib/include)
 
 # find Halide lib
@@ -185,11 +184,8 @@ link_directories(/root/TensorComprehensions/build/tc/core)
 link_directories(/root/TensorComprehensions/build/tc/autotuner)
 link_directories(/root/TensorComprehensions/build/tc/proto)
 
-# torch(aten) lib to delete
+# torch(aten)
 link_directories(/root/conda/envs/tc_build/lib/python3.6/site-packages/torch/lib)
 
 LIST(APPEND SINGA_LINKER_LIBS ${HALIDE_LIBRARIES} tc_aten tc_lang tc_core_cpu tc_cuda tc_core_cuda_no_sdk tc_core tc_autotuner tc_proto ATen)
-
-### Tensor comprehensions
-### Tensor comprehensions
 ### Tensor comprehensions
