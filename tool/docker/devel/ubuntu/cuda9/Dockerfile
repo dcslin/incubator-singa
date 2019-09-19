@@ -84,9 +84,8 @@ RUN git clone https://github.com/apache/incubator-singa.git $HOME/incubator-sing
     && cmake -DENABLE_TEST=ON -DUSE_CUDA=ON -DUSE_MKLDNN=ON -DUSE_PYTHON3=ON ..
 RUN cd $HOME/incubator-singa/build && make && make install
 
-
 # start of TC
-RUN apt-get update && apt-get install -y libgmp3-dev cmake automake libtool
+RUN apt-get update && apt-get install -y unzip libgmp3-dev automake curl
 
 RUN wget https://repo.anaconda.com/archive/Anaconda3-5.1.0-Linux-x86_64.sh -O anaconda.sh && \
     chmod +x anaconda.sh && \
@@ -102,42 +101,14 @@ RUN . /root/conda/bin/activate && \
     conda install -y -c pytorch pytorch=0.4.0 torchvision cuda90 && \
     conda remove -y cudatoolkit --force
 
-RUN cd /root/ && git clone https://github.com/dcslin/TensorComprehensions.git --recursive && \
-    cd TensorComprehensions
+
+RUN cd /root/ && git clone https://github.com/dcslin/TensorComprehensions.git --recursive
 
 ENV CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda
 
-RUN apt-get remove -y libprotobuf-dev protobuf-compiler && \
-    apt-get update && \
-    apt-get install -y unzip automake curl less
-
 ENV CLANG_PREFIX /root/conda/envs/tc_build
 RUN cd /root/TensorComprehensions && . /root/conda/bin/activate && conda activate tc_build && ./build.sh
-
-############# singa build
-# protobuf
-RUN cd /root/TensorComprehensions/third-party/googlelibraries/protobuf-3.5.2 \ 
-    && ./autogen.sh \ 
-    && ./configure \ 
-    && make -j8 \ 
-    && make check \ 
-    && make install \ 
-    && ldconfig
-
-# isl
-RUN cd /root/TensorComprehensions/third-party/islpp \ 
-    && ./autogen.sh \ 
-    && ./configure \ 
-    && make -j8 \ 
-    && make install
-
-# gflags
-RUN cd /root/TensorComprehensions/third-party/googlelibraries/gflags \ 
-    && mkdir build && cd build \ 
-    && cmake .. \ 
-    && make -j8 \ 
-    && make install
-# end of TC
+## end of TC
 
 WORKDIR $HOME/incubator-singa
 EXPOSE 22
