@@ -1356,9 +1356,7 @@ void deleter(DLManagedTensor *arg) {
 static DLDataType getDLDataType(const Tensor &t) {
   DLDataType dtype;
   dtype.lanes = 1;
-  // TODO: get the number of bytes of the datatype
-  // dtype.bits = t.data_type() * 8;
-  dtype.bits = 4 * 8;
+  dtype.bits = SizeOf(t.data_type()) * 8;
   switch (t.data_type()) {
   case kFloat32:
     dtype.code = DLDataTypeCode::kDLFloat;
@@ -1373,13 +1371,11 @@ static DLDataType getDLDataType(const Tensor &t) {
 static DLContext getDLContext(const Tensor &tensor, const int64_t &device_id) {
   DLContext ctx;
   ctx.device_id = device_id;
-  ctx.device_type = DLDeviceType::kDLGPU;
-  // TODO: fix this
-  // if (tensor.is_cuda()) {
-  //  ctx.device_type = DLDeviceType::kDLGPU;
-  //} else {
-  //  ctx.device_type = DLDeviceType::kDLCPU;
-  //}
+  if (tensor.device()->lang() == kCuda) {
+    ctx.device_type = DLDeviceType::kDLGPU;
+  } else {
+    ctx.device_type = DLDeviceType::kDLCPU;
+  }
   return ctx;
 }
 
