@@ -1390,10 +1390,6 @@ DLManagedTensor *toDLPack(const Tensor &src) {
   singaDLManagedTensor->tensor.deleter = &deleter;
   singaDLManagedTensor->tensor.dl_tensor.data = src.block()->mutable_data();
   int64_t device_id = src.device()->id();
-  // TODO: fix this
-  // if (src.is_cuda()) {
-  //  device_id = src.get_device();
-  //}
   singaDLManagedTensor->tensor.dl_tensor.ctx = getDLContext(src, device_id);
   singaDLManagedTensor->tensor.dl_tensor.ndim = src.nDim();
   singaDLManagedTensor->tensor.dl_tensor.dtype = getDLDataType(src);
