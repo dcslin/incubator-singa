@@ -24,10 +24,12 @@
 #include <utility>
 #include <algorithm>
 
+// tc
 #include <tc/core/check.h>
 #include <tc/core/compiler.h>
 #include <tc/core/tc_executor.h>
 #include <tc/core/tensor.h>
+// tc
 
 #define Noaxis 9999
 
@@ -1387,7 +1389,7 @@ DLManagedTensor *toDLPack(const Tensor &src) {
   singaDLManagedTensor->tensor.manager_ctx = singaDLManagedTensor;
   singaDLManagedTensor->tensor.deleter = &deleter;
   singaDLManagedTensor->tensor.dl_tensor.data = src.block()->mutable_data();
-  int64_t device_id = 0;
+  int64_t device_id = src.device()->id();
   // TODO: fix this
   // if (src.is_cuda()) {
   //  device_id = src.get_device();

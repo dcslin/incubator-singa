@@ -23,6 +23,7 @@
 #include <tuple>
 #include <memory>
 
+// tc
 #include <dlpack/dlpack.h>
 #include <tc/core/tensor.h>
 #include <tc/utils/compiler_options.h>
@@ -30,6 +31,9 @@
 #include <tc/core/utils/time.h>
 #include <tc/core/cuda/cuda_backend.h>
 #include <tc/core/cuda/cuda_tc_executor.h>
+#include <tc/core/cpu/cpu_backend.h>
+#include <tc/core/cpu/cpu_tc_executor.h>
+// tc
 
 #include "singa/core/common.h"
 #include "singa/core/device.h"
@@ -617,7 +621,6 @@ Tensor ConcatColumns(const vector<Tensor> &in);
 
 /// tc integration start
 DLManagedTensor *toDLPack(const Tensor &src);
-// Tensor fromDLPack(const DLManagedTensor* src);
 
 inline std::vector<tc::DLTensorUPtr>
 makeDLTensors(const std::vector<Tensor> &tensors);

@@ -58,14 +58,14 @@ RUN apt-get update \
 # install swig > 3.0.10
 RUN wget http://prdownloads.sourceforge.net/swig/swig-3.0.10.tar.gz -P /tmp/ \
     && tar zxf /tmp/swig-3.0.10.tar.gz -C /tmp/ \
-    && cd /tmp/swig-3.0.10 && ./configure && make -j8 && make install
+    && cd /tmp/swig-3.0.10 && ./configure && make -j4 && make install
 
 # install mkldnn
 RUN wget https://github.com/intel/mkl-dnn/archive/v0.18.tar.gz -P /tmp/ \
     && tar zxf /tmp/v0.18.tar.gz -C /tmp/ \
     && cd /tmp/mkl-dnn-0.18/ \
     && mkdir -p build && cd build && cmake .. \
-    && make -j8 && make install
+    && make -j4 && make install
 
 # config ssh service
 RUN mkdir /var/run/sshd \
@@ -76,13 +76,6 @@ RUN mkdir /var/run/sshd \
     && sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd \
     # dump environment variables into files, so that ssh can see also
     && env | grep _ >> /etc/environment
-
-# build incubator singa
-RUN git clone https://github.com/apache/incubator-singa.git $HOME/incubator-singa \
-    && cd $HOME/incubator-singa \
-    && mkdir build && cd build \
-    && cmake -DENABLE_TEST=ON -DUSE_CUDA=ON -DUSE_MKLDNN=ON -DUSE_PYTHON3=ON ..
-RUN cd $HOME/incubator-singa/build && make && make install
 
 # start of TC
 RUN apt-get update && apt-get install -y unzip libgmp3-dev automake curl
@@ -109,6 +102,13 @@ ENV CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda
 ENV CLANG_PREFIX /root/conda/envs/tc_build
 RUN cd /root/TensorComprehensions && . /root/conda/bin/activate && conda activate tc_build && ./build.sh
 ## end of TC
+
+# build incubator singa
+RUN git clone https://github.com/apache/incubator-singa.git $HOME/incubator-singa \
+    && cd $HOME/incubator-singa \
+    && mkdir build && cd build \
+    && cmake -DENABLE_TEST=ON -DUSE_CUDA=ON -DUSE_MKLDNN=ON -DUSE_PYTHON3=ON ..
+RUN cd $HOME/incubator-singa/build && make && make install
 
 WORKDIR $HOME/incubator-singa
 EXPOSE 22
