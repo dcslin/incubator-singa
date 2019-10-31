@@ -24,18 +24,14 @@
 #include <utility>
 #include <algorithm>
 
-// tc
-#include <tc/core/check.h>
-#include <tc/core/compiler.h>
-#include <tc/core/tc_executor.h>
-#include <tc/core/tensor.h>
-// tc
 
 #define Noaxis 9999
 
+#ifdef USE_TC
 // namespace is already exist in singa
 // aliasing to avoid duplicates
 namespace tclang = lang;
+#endif // USE_TC
 
 namespace singa {
 
@@ -1345,6 +1341,7 @@ Tensor Reshape(const Tensor &in, const Shape &s) {
 }
 
 
+#ifdef USE_TC
 /// tc integration start
 struct SingaDLManagedTensor {
   Tensor handle;
@@ -1447,6 +1444,7 @@ std::vector<Tensor> prepareOutputs(const std::string &tc,
   return outputs;
 }
 /// tc integration end
+#endif // USE_TC
 
 
 }  // namespace singa

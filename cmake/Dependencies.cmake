@@ -125,11 +125,11 @@ ENDIF()
 
 IF(USE_PYTHON)
     IF(USE_PYTHON3)
-        set(Python_ADDITIONAL_VERSIONS 3.6 3.5 3.4)        
+        set(Python_ADDITIONAL_VERSIONS 3.6 3.5 3.4)
         FIND_PACKAGE(PythonInterp 3 REQUIRED)
         FIND_PACKAGE(PythonLibs 3 REQUIRED)
 	    FIND_PACKAGE(SWIG 3.0.10 REQUIRED)
-    ELSE()        
+    ELSE()
         FIND_PACKAGE(PythonInterp 2.7 REQUIRED)
         FIND_PACKAGE(PythonLibs 2.7 REQUIRED)
 	    FIND_PACKAGE(SWIG 3.0.8 REQUIRED)
@@ -142,6 +142,7 @@ IF(USE_JAVA)
     FIND_PACKAGE(SWIG 3.0 REQUIRED)
 ENDIF()
 
+
 IF(USE_MKLDNN)
     FIND_PATH(MKLDNN_INCLUDE_DIR NAME "mkldnn.hpp" PATHS "$ENV{CMAKE_INCLUDE_PATH}")
     FIND_LIBRARY(MKLDNN_LIBRARIES NAME "mkldnn" PATHS "$ENV{CMAKE_LIBRARY_PATH}")
@@ -151,41 +152,43 @@ IF(USE_MKLDNN)
 ENDIF()
 
 
-### Tensor comprehensions
-INCLUDE_DIRECTORIES(/root/TensorComprehensions)
-INCLUDE_DIRECTORIES(/root/TensorComprehensions/tc/version)
-INCLUDE_DIRECTORIES(/root/TensorComprehensions/build)
-# polyhedral model required
-INCLUDE_DIRECTORIES(/root/TensorComprehensions/isl_interface/include)
-# dlpack
-INCLUDE_DIRECTORIES(/root/TensorComprehensions/third-party/dlpack/include)
-# islpp
-INCLUDE_DIRECTORIES(/root/TensorComprehensions/third-party/islpp/include)
-# gflags
-INCLUDE_DIRECTORIES(/root/TensorComprehensions/build/third-party/googlelibraries/gflags/include)
-# glog
-INCLUDE_DIRECTORIES(/root/TensorComprehensions/build/third-party/googlelibraries/glog)
-# Halide
-INCLUDE_DIRECTORIES(/root/conda/envs/tc_build/include/Halide)
-# llvm
-INCLUDE_DIRECTORIES(/root/conda/envs/tc_build/include)
-# torch ATen header
-INCLUDE_DIRECTORIES(/root/conda/envs/tc_build/lib/python3.6/site-packages/torch/lib/include)
+IF(USE_TC)
+    ### Tensor comprehensions
+    INCLUDE_DIRECTORIES(/root/TensorComprehensions)
+    INCLUDE_DIRECTORIES(/root/TensorComprehensions/tc/version)
+    INCLUDE_DIRECTORIES(/root/TensorComprehensions/build)
+    # polyhedral model required
+    INCLUDE_DIRECTORIES(/root/TensorComprehensions/isl_interface/include)
+    # dlpack
+    INCLUDE_DIRECTORIES(/root/TensorComprehensions/third-party/dlpack/include)
+    # islpp
+    INCLUDE_DIRECTORIES(/root/TensorComprehensions/third-party/islpp/include)
+    # gflags
+    INCLUDE_DIRECTORIES(/root/TensorComprehensions/build/third-party/googlelibraries/gflags/include)
+    # glog
+    INCLUDE_DIRECTORIES(/root/TensorComprehensions/build/third-party/googlelibraries/glog)
+    # Halide
+    INCLUDE_DIRECTORIES(/root/conda/envs/tc_build/include/Halide)
+    # llvm
+    INCLUDE_DIRECTORIES(/root/conda/envs/tc_build/include)
+    # torch ATen header
+    INCLUDE_DIRECTORIES(/root/conda/envs/tc_build/lib/python3.6/site-packages/torch/lib/include)
 
-# find Halide lib
-set(HALIDE_PREFIX "/root/conda/envs/tc_build")
-find_library(HALIDE_LIBRARIES REQUIRED NAMES Halide PATHS ${HALIDE_PREFIX} PATH_SUFFIXES lib lib64 NO_DEFAULT_PATH)
-message(STATUS "Found Halide.so file: ${HALIDE_LIBRARIES}")
+    # find Halide lib
+    set(HALIDE_PREFIX "/root/conda/envs/tc_build")
+    find_library(HALIDE_LIBRARIES REQUIRED NAMES Halide PATHS ${HALIDE_PREFIX} PATH_SUFFIXES lib lib64 NO_DEFAULT_PATH)
+    message(STATUS "Found Halide.so file: ${HALIDE_LIBRARIES}")
 
-# find tc lib
-link_directories(/root/TensorComprehensions/build/tc/aten)
-link_directories(/root/TensorComprehensions/build/tc/lang)
-link_directories(/root/TensorComprehensions/build/tc/core)
-link_directories(/root/TensorComprehensions/build/tc/autotuner)
-link_directories(/root/TensorComprehensions/build/tc/proto)
+    # find tc lib
+    link_directories(/root/TensorComprehensions/build/tc/aten)
+    link_directories(/root/TensorComprehensions/build/tc/lang)
+    link_directories(/root/TensorComprehensions/build/tc/core)
+    link_directories(/root/TensorComprehensions/build/tc/autotuner)
+    link_directories(/root/TensorComprehensions/build/tc/proto)
 
-# torch(aten)
-link_directories(/root/conda/envs/tc_build/lib/python3.6/site-packages/torch/lib)
+    # torch(aten)
+    link_directories(/root/conda/envs/tc_build/lib/python3.6/site-packages/torch/lib)
 
-LIST(APPEND SINGA_LINKER_LIBS ${HALIDE_LIBRARIES} tc_aten tc_lang tc_core_cpu tc_cuda tc_core_cuda_no_sdk tc_core tc_autotuner tc_proto ATen)
-### Tensor comprehensions
+    LIST(APPEND SINGA_LINKER_LIBS ${HALIDE_LIBRARIES} tc_aten tc_lang tc_core_cpu tc_cuda tc_core_cuda_no_sdk tc_core tc_autotuner tc_proto ATen)
+    ### Tensor comprehensions
+ENDIF()

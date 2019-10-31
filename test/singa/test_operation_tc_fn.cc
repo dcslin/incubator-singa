@@ -19,6 +19,7 @@
 *
 ************************************************************/
 
+#ifdef USE_TC
 #include "../src/model/operation/tc_fn.h"
 #include "gtest/gtest.h"
 #include <iostream>
@@ -219,3 +220,4 @@ def matmul(float(M,N) A, float(N,K) B) -> (output) {
   EXPECT_FLOAT_EQ(2.64f, dptr[3]);
 
 }
+#endif // USE_TC

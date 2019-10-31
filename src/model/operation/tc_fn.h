@@ -21,6 +21,7 @@
 //#ifndef SINGA_MODEL_OPERATION_TC_FN_H_
 //#define SINGA_MODEL_OPERATION_TC_FN_H_
 
+#ifdef USE_TC
 
 #include "singa/core/tensor.h"
 
@@ -37,3 +38,5 @@ class TcFnHandle {
 Tensor tcExecute(const TcFnHandle &smh, const std::vector<Tensor> &inputs);
 
 }  // namespace singa
+
+#endif // USE_TC

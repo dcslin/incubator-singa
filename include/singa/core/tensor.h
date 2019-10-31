@@ -23,7 +23,7 @@
 #include <tuple>
 #include <memory>
 
-// tc
+#ifdef USE_TC
 #include <dlpack/dlpack.h>
 #include <tc/core/tensor.h>
 #include <tc/utils/compiler_options.h>
@@ -33,7 +33,9 @@
 #include <tc/core/cuda/cuda_tc_executor.h>
 #include <tc/core/cpu/cpu_backend.h>
 #include <tc/core/cpu/cpu_tc_executor.h>
-// tc
+#include <tc/core/check.h>
+#include <tc/core/tc_executor.h>
+#endif // USE_TC
 
 #include "singa/core/common.h"
 #include "singa/core/device.h"
@@ -619,6 +621,7 @@ Tensor ConcatColumns(const vector<Tensor> &in);
 
 
 
+#ifdef USE_TC
 /// tc integration start
 DLManagedTensor *toDLPack(const Tensor &src);
 
@@ -691,6 +694,7 @@ void runTC(const Executor &executor, const std::vector<Tensor> &inputs,
 }
 
 /// tc integration end
+#endif // USE_TC
 
 }  // namespace singa
 

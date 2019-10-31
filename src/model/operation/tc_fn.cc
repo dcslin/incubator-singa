@@ -18,6 +18,7 @@
 * under the License.
 *
 ************************************************************/
+#ifdef USE_TC
 #include "./tc_fn.h"
 
 namespace singa {
@@ -38,3 +39,4 @@ Tensor tcExecute(const TcFnHandle &tcFnhandle, const std::vector<Tensor> &inputs
 }
 
 }
+#endif // USE_TC
