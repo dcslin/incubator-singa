@@ -90,6 +90,13 @@ class ConvHandle {
   dnnl::convolution_forward::desc *conv_d;
   dnnl::convolution_forward::primitive_desc *conv_pd;
 
+  dnnl::memory::desc conv_x_md;
+  dnnl::memory::desc conv_w_md;
+  dnnl::memory::desc conv_b_md;
+  dnnl::memory::desc conv_y_md;
+  dnnl::reorder::primitive_desc *reorder_pd_x;
+  dnnl::reorder::primitive_desc *reorder_pd_w;
+
   Tensor *db;
 #endif  // USE_DNNL
 };

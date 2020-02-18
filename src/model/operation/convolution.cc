@@ -83,14 +83,28 @@ ConvHandle::ConvHandle(const Tensor &input,
     b_md = dnnl::memory::desc(b_dims, dtype_, dnnl::memory::format_tag::x);
     y_md = dnnl::memory::desc(o_dims, dtype_, dnnl::memory::format_tag::nchw);
 
+    conv_x_md =
+        dnnl::memory::desc(x_dims, dtype_, dnnl::memory::format_tag::any);
+    conv_w_md =
+        dnnl::memory::desc(w_dims, dtype_, dnnl::memory::format_tag::any);
+    conv_b_md = dnnl::memory::desc(b_dims, dtype_, dnnl::memory::format_tag::x);
+    conv_y_md =
+        dnnl::memory::desc(o_dims, dtype_, dnnl::memory::format_tag::any);
+
     // convolution forward primitive descriptor is shared between forward and
     // backward process
     conv_d = new dnnl::convolution_forward::desc(
         dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct,
-        x_md, w_md, b_md, y_md, s_dims, p_dims, p_dims);
+        conv_x_md, conv_w_md, conv_b_md, conv_y_md, s_dims, p_dims, p_dims);
 
     auto eng = input.device()->context(0)->dnnl_engine;
     conv_pd = new dnnl::convolution_forward::primitive_desc(*conv_d, eng);
+
+    // reorder primitive descriptor
+    dnnl_reorder_primitive_desc_create(reorder_pd_x, x_md, eng, conv_x_md, eng,
+                                       NULL);
+    dnnl_reorder_primitive_desc_create(reorder_pd_w, w_md, eng, conv_w_md, eng,
+                                       NULL);
 
     // dnnl calculate dw and db in one go, a workaround to be compatible with
     // singa api
@@ -128,25 +142,23 @@ Tensor CpuConvForward(const Tensor &x, Tensor &W, Tensor &b,
   Shape shape{ch.batchsize, ch.num_filters, ch.conv_height, ch.conv_width};
   Tensor output(shape, dev, dtype);
 
-  output.device()->Exec(
-      [&output, &x, &W, &b, &ch](Context *ctx) {
+  output.device()->Exec([&output, &x, &W, &b, &ch](Context *ctx) {
 
-        using namespace dnnl;
+    using namespace dnnl;
 
-        auto eng = ctx->dnnl_engine;
-        auto x_mem = memory(ch.x_md, eng, x.block()->mutable_data());
-        auto w_mem = memory(ch.w_md, eng, W.block()->mutable_data());
-        auto b_mem = memory(ch.b_md, eng, b.block()->mutable_data());
-        auto y_mem = memory(ch.y_md, eng, output.block()->mutable_data());
+    auto eng = ctx->dnnl_engine;
+    auto x_mem = memory(ch.x_md, eng, x.block()->mutable_data());
+    auto w_mem = memory(ch.w_md, eng, W.block()->mutable_data());
+    auto b_mem = memory(ch.b_md, eng, b.block()->mutable_data());
+    auto y_mem = memory(ch.y_md, eng, output.block()->mutable_data());
 
-        convolution_forward(*ch.conv_pd)
-            .execute(ctx->dnnl_stream, {{DNNL_ARG_SRC, x_mem},
-                                        {DNNL_ARG_WEIGHTS, w_mem},
-                                        {DNNL_ARG_BIAS, b_mem},
-                                        {DNNL_ARG_DST, y_mem}});
-        ctx->dnnl_stream.wait();
-      },
-      {x.block(), W.block(), b.block()}, {output.block()});
+    convolution_forward(*ch.conv_pd)
+        .execute(ctx->dnnl_stream, {{DNNL_ARG_SRC, x_mem},
+                                    {DNNL_ARG_WEIGHTS, w_mem},
+                                    {DNNL_ARG_BIAS, b_mem},
+                                    {DNNL_ARG_DST, y_mem}});
+    ctx->dnnl_stream.wait();
+  }, {x.block(), W.block(), b.block()}, {output.block()});
 
   return output;
 #else   // cpp naive
@@ -202,29 +214,27 @@ Tensor CpuConvBackwardx(const Tensor &dy, Tensor &W, const Tensor &x,
   Tensor dx;
   dx.ResetLike(x);
 
-  dy.device()->Exec(
-      [&x, &dx, &dy, &W, &ch](Context *ctx) {
-        auto eng = ctx->dnnl_engine;
-        using namespace dnnl;
-        auto x_mem = memory(ch.x_md, eng, x.block()->mutable_data());
-        auto w_mem = memory(ch.w_md, eng, W.block()->mutable_data());
-        auto dx_mem = memory(ch.x_md, eng, dx.block()->mutable_data());
-        auto dy_mem = memory(ch.y_md, eng, dy.block()->mutable_data());
+  dy.device()->Exec([&x, &dx, &dy, &W, &ch](Context *ctx) {
+    auto eng = ctx->dnnl_engine;
+    using namespace dnnl;
+    auto x_mem = memory(ch.x_md, eng, x.block()->mutable_data());
+    auto w_mem = memory(ch.w_md, eng, W.block()->mutable_data());
+    auto dx_mem = memory(ch.x_md, eng, dx.block()->mutable_data());
+    auto dy_mem = memory(ch.y_md, eng, dy.block()->mutable_data());
 
-        auto conv_bwd_data_d = convolution_backward_data::desc(
-            algorithm::convolution_direct, ch.x_md, ch.w_md, ch.y_md, ch.s_dims,
-            ch.p_dims, ch.p_dims);
-        auto conv_bwd_data_pd = convolution_backward_data::primitive_desc(
-            conv_bwd_data_d, eng, *ch.conv_pd);
+    auto conv_bwd_data_d = convolution_backward_data::desc(
+        algorithm::convolution_direct, ch.x_md, ch.w_md, ch.y_md, ch.s_dims,
+        ch.p_dims, ch.p_dims);
+    auto conv_bwd_data_pd = convolution_backward_data::primitive_desc(
+        conv_bwd_data_d, eng, *ch.conv_pd);
 
-        convolution_backward_data(conv_bwd_data_pd)
-            .execute(ctx->dnnl_stream, {{DNNL_ARG_DIFF_DST, dy_mem},
-                                        {DNNL_ARG_WEIGHTS, w_mem},
-                                        {DNNL_ARG_DIFF_SRC, dx_mem}});
-        ctx->dnnl_stream.wait();
+    convolution_backward_data(conv_bwd_data_pd)
+        .execute(ctx->dnnl_stream, {{DNNL_ARG_DIFF_DST, dy_mem},
+                                    {DNNL_ARG_WEIGHTS, w_mem},
+                                    {DNNL_ARG_DIFF_SRC, dx_mem}});
+    ctx->dnnl_stream.wait();
 
-      },
-      {x.block(), dy.block(), W.block()}, {dx.block()});
+  }, {x.block(), dy.block(), W.block()}, {dx.block()});
 
   return dx;
 
@@ -269,31 +279,29 @@ Tensor CpuConvBackwardW(const Tensor &dy, const Tensor &x, const Tensor &W,
   Tensor dW;
   dW.ResetLike(W);
 
-  dy.device()->Exec(
-      [&x, &dy, &dW, &ch](Context *ctx) {
-        auto eng = ctx->dnnl_engine;
-        using namespace dnnl;
+  dy.device()->Exec([&x, &dy, &dW, &ch](Context *ctx) {
+    auto eng = ctx->dnnl_engine;
+    using namespace dnnl;
 
-        auto x_mem = memory(ch.x_md, eng, x.block()->mutable_data());
-        auto dw_mem = memory(ch.w_md, eng, dW.block()->mutable_data());
-        auto dy_mem = memory(ch.y_md, eng, dy.block()->mutable_data());
-        auto db_mem = memory(ch.b_md, eng, ch.db->block()->mutable_data());
+    auto x_mem = memory(ch.x_md, eng, x.block()->mutable_data());
+    auto dw_mem = memory(ch.w_md, eng, dW.block()->mutable_data());
+    auto dy_mem = memory(ch.y_md, eng, dy.block()->mutable_data());
+    auto db_mem = memory(ch.b_md, eng, ch.db->block()->mutable_data());
 
-        auto conv_dw_d = convolution_backward_weights::desc(
-            algorithm::convolution_direct, ch.x_md, ch.w_md, ch.b_md, ch.y_md,
-            ch.s_dims, ch.p_dims, ch.p_dims);
+    auto conv_dw_d = convolution_backward_weights::desc(
+        algorithm::convolution_direct, ch.x_md, ch.w_md, ch.b_md, ch.y_md,
+        ch.s_dims, ch.p_dims, ch.p_dims);
 
-        auto conv_dw_pd = convolution_backward_weights::primitive_desc(
-            conv_dw_d, eng, *ch.conv_pd);
-        convolution_backward_weights(conv_dw_pd)
-            .execute(ctx->dnnl_stream, {{DNNL_ARG_DIFF_DST, dy_mem},
-                                        {DNNL_ARG_SRC, x_mem},
-                                        {DNNL_ARG_DIFF_WEIGHTS, dw_mem},
-                                        {DNNL_ARG_DIFF_BIAS, db_mem}});
-        ctx->dnnl_stream.wait();
+    auto conv_dw_pd = convolution_backward_weights::primitive_desc(
+        conv_dw_d, eng, *ch.conv_pd);
+    convolution_backward_weights(conv_dw_pd)
+        .execute(ctx->dnnl_stream, {{DNNL_ARG_DIFF_DST, dy_mem},
+                                    {DNNL_ARG_SRC, x_mem},
+                                    {DNNL_ARG_DIFF_WEIGHTS, dw_mem},
+                                    {DNNL_ARG_DIFF_BIAS, db_mem}});
+    ctx->dnnl_stream.wait();
 
-      },
-      {x.block(), dy.block(), W.block()}, {dW.block()});
+  }, {x.block(), dy.block(), W.block()}, {dW.block()});
 
   return dW;
 #else   // native cpp
@@ -507,30 +515,24 @@ Tensor GpuConvForward(const Tensor &x, const Tensor &W, const Tensor &b,
   Shape shape{cch.batchsize, cch.num_filters, cch.conv_height, cch.conv_width};
   Tensor output(shape, dev, dtype);
 
-  output.device()->Exec(
-      [&output, &x, &W, &cch](Context *ctx) {
-        Block *inblock = x.block(), *outblock = output.block(),
-              *wblock = W.block();
-        float alpha = 1.f, beta = 0.f;
-        cudnnConvolutionForward(ctx->cudnn_handle, &alpha, cch.x_desc,
-                                inblock->data(), cch.filter_desc,
-                                wblock->data(), cch.conv_desc, cch.fp_alg,
-                                cch.workspace.block()->mutable_data(),
-                                cch.workspace_count * sizeof(float), &beta,
-                                cch.y_desc, outblock->mutable_data());
-      },
-      {x.block(), W.block()}, {output.block()}, cch.workspace.block());
+  output.device()->Exec([&output, &x, &W, &cch](Context *ctx) {
+    Block *inblock = x.block(), *outblock = output.block(), *wblock = W.block();
+    float alpha = 1.f, beta = 0.f;
+    cudnnConvolutionForward(ctx->cudnn_handle, &alpha, cch.x_desc,
+                            inblock->data(), cch.filter_desc, wblock->data(),
+                            cch.conv_desc, cch.fp_alg,
+                            cch.workspace.block()->mutable_data(),
+                            cch.workspace_count * sizeof(float), &beta,
+                            cch.y_desc, outblock->mutable_data());
+  }, {x.block(), W.block()}, {output.block()}, cch.workspace.block());
 
   if (cch.bias_term) {
-    output.device()->Exec(
-        [&output, &b, &cch](Context *ctx) {
-          float beta = 1.f, alpha = 1.0f;
-          Block *outblock = output.block(), *bblock = b.block();
-          cudnnAddTensor(ctx->cudnn_handle, &alpha, cch.bias_desc,
-                         bblock->data(), &beta, cch.y_desc,
-                         outblock->mutable_data());
-        },
-        {output.block(), b.block()}, {output.block()});
+    output.device()->Exec([&output, &b, &cch](Context *ctx) {
+      float beta = 1.f, alpha = 1.0f;
+      Block *outblock = output.block(), *bblock = b.block();
+      cudnnAddTensor(ctx->cudnn_handle, &alpha, cch.bias_desc, bblock->data(),
+                     &beta, cch.y_desc, outblock->mutable_data());
+    }, {output.block(), b.block()}, {output.block()});
   }
 
   return output;
@@ -543,18 +545,16 @@ Tensor GpuConvBackwardx(const Tensor &dy, const Tensor &W, const Tensor &x,
   Tensor dx;
   dx.ResetLike(x);
 
-  dy.device()->Exec(
-      [&dx, &dy, &W, &cch](Context *ctx) {
-        Block *wblock = W.block(), *dyblock = dy.block(), *dxblock = dx.block();
-        float alpha = 1.f, beta = 0.f;
-        cudnnConvolutionBackwardData(
-            ctx->cudnn_handle, &alpha, cch.filter_desc, wblock->data(),
-            cch.y_desc, dyblock->data(), cch.conv_desc, cch.bp_data_alg,
-            cch.workspace.block()->mutable_data(),
-            cch.workspace_count * sizeof(float), &beta, cch.x_desc,
-            dxblock->mutable_data());
-      },
-      {dy.block(), W.block()}, {dx.block(), cch.workspace.block()});
+  dy.device()->Exec([&dx, &dy, &W, &cch](Context *ctx) {
+    Block *wblock = W.block(), *dyblock = dy.block(), *dxblock = dx.block();
+    float alpha = 1.f, beta = 0.f;
+    cudnnConvolutionBackwardData(ctx->cudnn_handle, &alpha, cch.filter_desc,
+                                 wblock->data(), cch.y_desc, dyblock->data(),
+                                 cch.conv_desc, cch.bp_data_alg,
+                                 cch.workspace.block()->mutable_data(),
+                                 cch.workspace_count * sizeof(float), &beta,
+                                 cch.x_desc, dxblock->mutable_data());
+  }, {dy.block(), W.block()}, {dx.block(), cch.workspace.block()});
 
   return dx;
 }
@@ -566,19 +566,16 @@ Tensor GpuConvBackwardW(const Tensor &dy, const Tensor &x, const Tensor &W,
   Tensor dW;
   dW.ResetLike(W);
 
-  dy.device()->Exec(
-      [&dW, &dy, &x, &cch](Context *ctx) {
-        Block *inblock = x.block(), *dyblock = dy.block(),
-              *dwblock = dW.block();
-        float alpha = 1.f, beta = 0.f;
-        cudnnConvolutionBackwardFilter(
-            ctx->cudnn_handle, &alpha, cch.x_desc, inblock->data(), cch.y_desc,
-            dyblock->data(), cch.conv_desc, cch.bp_filter_alg,
-            cch.workspace.block()->mutable_data(),
-            cch.workspace_count * sizeof(float), &beta, cch.filter_desc,
-            dwblock->mutable_data());
-      },
-      {dy.block(), x.block()}, {dW.block(), cch.workspace.block()});
+  dy.device()->Exec([&dW, &dy, &x, &cch](Context *ctx) {
+    Block *inblock = x.block(), *dyblock = dy.block(), *dwblock = dW.block();
+    float alpha = 1.f, beta = 0.f;
+    cudnnConvolutionBackwardFilter(ctx->cudnn_handle, &alpha, cch.x_desc,
+                                   inblock->data(), cch.y_desc, dyblock->data(),
+                                   cch.conv_desc, cch.bp_filter_alg,
+                                   cch.workspace.block()->mutable_data(),
+                                   cch.workspace_count * sizeof(float), &beta,
+                                   cch.filter_desc, dwblock->mutable_data());
+  }, {dy.block(), x.block()}, {dW.block(), cch.workspace.block()});
 
   return dW;
 }
@@ -591,15 +588,13 @@ Tensor GpuConvBackwardb(const Tensor &dy, const Tensor &b,
   Tensor db;
   db.ResetLike(b);
 
-  dy.device()->Exec(
-      [&db, &dy, &cch](Context *ctx) {
-        Block *dyblock = dy.block(), *dbblock = db.block();
-        float alpha = 1.f, beta = 0.f;
-        cudnnConvolutionBackwardBias(ctx->cudnn_handle, &alpha, cch.y_desc,
-                                     dyblock->data(), &beta, cch.bias_desc,
-                                     dbblock->mutable_data());
-      },
-      {dy.block()}, {db.block()});
+  dy.device()->Exec([&db, &dy, &cch](Context *ctx) {
+    Block *dyblock = dy.block(), *dbblock = db.block();
+    float alpha = 1.f, beta = 0.f;
+    cudnnConvolutionBackwardBias(ctx->cudnn_handle, &alpha, cch.y_desc,
+                                 dyblock->data(), &beta, cch.bias_desc,
+                                 dbblock->mutable_data());
+  }, {dy.block()}, {db.block()});
 
   return db;
 }
