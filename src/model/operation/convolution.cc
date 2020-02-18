@@ -101,10 +101,10 @@ ConvHandle::ConvHandle(const Tensor &input,
     conv_pd = new dnnl::convolution_forward::primitive_desc(*conv_d, eng);
 
     // reorder primitive descriptor
-    dnnl_reorder_primitive_desc_create(reorder_pd_x, x_md, eng, conv_x_md, eng,
-                                       NULL);
-    dnnl_reorder_primitive_desc_create(reorder_pd_w, w_md, eng, conv_w_md, eng,
-                                       NULL);
+    reorder_pd_x =
+        new dnnl::reorder::primitive_desc(eng, x_md, eng, conv_x_md, NULL);
+    reorder_pd_w =
+        new dnnl::reorder::primitive_desc(eng, w_md, eng, conv_w_md, NULL);
 
     // dnnl calculate dw and db in one go, a workaround to be compatible with
     // singa api
