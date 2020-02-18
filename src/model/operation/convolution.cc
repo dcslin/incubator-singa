@@ -152,11 +152,23 @@ Tensor CpuConvForward(const Tensor &x, Tensor &W, Tensor &b,
     auto b_mem = memory(ch.b_md, eng, b.block()->mutable_data());
     auto y_mem = memory(ch.y_md, eng, output.block()->mutable_data());
 
+    auto conv_x_mem = memory(ch.conv_x_md, eng, x.block()->mutable_data());
+    auto conv_w_mem = memory(ch.conv_w_md, eng, W.block()->mutable_data());
+    auto conv_b_mem = memory(ch.conv_b_md, eng, b.block()->mutable_data());
+    auto conv_y_mem = memory(ch.conv_y_md, eng, output.block()->mutable_data());
+
+    reorder(*ch.reorder_pd_x)
+        .execute(ctx->dnnl_stream,
+                 {{DNNL_ARG_SRC, x_mem}, {DNNL_ARG_DST, conv_x_mem}});
+    reorder(*ch.reorder_pd_w)
+        .execute(ctx->dnnl_stream,
+                 {{DNNL_ARG_SRC, w_mem}, {DNNL_ARG_DST, conv_w_mem}});
+
     convolution_forward(*ch.conv_pd)
-        .execute(ctx->dnnl_stream, {{DNNL_ARG_SRC, x_mem},
-                                    {DNNL_ARG_WEIGHTS, w_mem},
-                                    {DNNL_ARG_BIAS, b_mem},
-                                    {DNNL_ARG_DST, y_mem}});
+        .execute(ctx->dnnl_stream, {{DNNL_ARG_SRC, conv_x_mem},
+                                    {DNNL_ARG_WEIGHTS, conv_w_mem},
+                                    {DNNL_ARG_BIAS, conv_b_mem},
+                                    {DNNL_ARG_DST, conv_y_mem}});
     ctx->dnnl_stream.wait();
   }, {x.block(), W.block(), b.block()}, {output.block()});
 
