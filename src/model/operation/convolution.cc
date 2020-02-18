@@ -33,6 +33,7 @@ ConvHandle::ConvHandle(const Tensor &input,
                        const bool bias, const size_t groups) {
   kernel_h = kernel_size[0];
   kernel_w = kernel_size[1];
+  printf("passstart");
 
   pad_h = padding[0];
   pad_w = padding[1];
@@ -66,6 +67,7 @@ ConvHandle::ConvHandle(const Tensor &input,
     use_dnnl = true;
     const int groups = 1;  // only groups 1 is supported for now
     auto dtype_ = dnnl::memory::data_type::f32;
+    printf("passx");
 
     x_dims = dnnl::memory::dims{(int)input.shape(0), (int)in_channels,
                                 (int)input.shape(2), (int)input.shape(3)};
@@ -77,11 +79,13 @@ ConvHandle::ConvHandle(const Tensor &input,
     w_dims = dnnl::memory::dims{groups, (int)out_channels / groups,
                                 (int)in_channels / groups, (int)kernel_size[0],
                                 (int)kernel_size[1]};
+    printf("passy");
 
     x_md = dnnl::memory::desc(x_dims, dtype_, dnnl::memory::format_tag::nchw);
     w_md = dnnl::memory::desc(w_dims, dtype_, dnnl::memory::format_tag::giohw);
     b_md = dnnl::memory::desc(b_dims, dtype_, dnnl::memory::format_tag::x);
     y_md = dnnl::memory::desc(o_dims, dtype_, dnnl::memory::format_tag::nchw);
+    printf("passz");
 
     conv_x_md =
         dnnl::memory::desc(x_dims, dtype_, dnnl::memory::format_tag::any);
@@ -90,21 +94,25 @@ ConvHandle::ConvHandle(const Tensor &input,
     conv_b_md = dnnl::memory::desc(b_dims, dtype_, dnnl::memory::format_tag::x);
     conv_y_md =
         dnnl::memory::desc(o_dims, dtype_, dnnl::memory::format_tag::any);
+    printf("passa");
 
     // convolution forward primitive descriptor is shared between forward and
     // backward process
     conv_d = new dnnl::convolution_forward::desc(
         dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct,
         conv_x_md, conv_w_md, conv_b_md, conv_y_md, s_dims, p_dims, p_dims);
+    printf("passb");
 
     auto eng = input.device()->context(0)->dnnl_engine;
     conv_pd = new dnnl::convolution_forward::primitive_desc(*conv_d, eng);
+    printf("passc");
 
     // reorder primitive descriptor
     reorder_pd_x =
         new dnnl::reorder::primitive_desc(eng, x_md, eng, conv_x_md, NULL);
     reorder_pd_w =
         new dnnl::reorder::primitive_desc(eng, w_md, eng, conv_w_md, NULL);
+    printf("passd");
 
     // dnnl calculate dw and db in one go, a workaround to be compatible with
     // singa api
@@ -157,12 +165,19 @@ Tensor CpuConvForward(const Tensor &x, Tensor &W, Tensor &b,
     auto conv_b_mem = memory(ch.conv_b_md, eng, b.block()->mutable_data());
     auto conv_y_mem = memory(ch.conv_y_md, eng, output.block()->mutable_data());
 
+    printf("pass1");
+
     reorder(*ch.reorder_pd_x)
         .execute(ctx->dnnl_stream,
                  {{DNNL_ARG_SRC, x_mem}, {DNNL_ARG_DST, conv_x_mem}});
+
+    printf("pass2");
+
     reorder(*ch.reorder_pd_w)
         .execute(ctx->dnnl_stream,
                  {{DNNL_ARG_SRC, w_mem}, {DNNL_ARG_DST, conv_w_mem}});
+
+    printf("pass3");
 
     convolution_forward(*ch.conv_pd)
         .execute(ctx->dnnl_stream, {{DNNL_ARG_SRC, conv_x_mem},
@@ -393,6 +408,7 @@ CudnnConvHandle::CudnnConvHandle(
   auto dev = input.device();
   Context *ctx = dev->context(0);
   channels_per_filter = channels / groups;
+  printf("passstartcudnn");
 
   CUDNN_CHECK(cudnnCreateTensorDescriptor(&x_desc));
   CUDNN_CHECK(cudnnCreateTensorDescriptor(&y_desc));

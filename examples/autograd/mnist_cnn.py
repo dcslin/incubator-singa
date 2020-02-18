@@ -142,8 +142,8 @@ def augmentation(x, batch_size):
     xpad = np.pad(x, [[0, 0], [0, 0], [4, 4], [4, 4]], 'symmetric')
     for data_num in range(0, batch_size):
         offset = np.random.randint(8, size=2)
-        x[data_num, :, :, :] = xpad[data_num, :, offset[0]:offset[0] +
-                                    28, offset[1]:offset[1] + 28]
+        x[data_num, :, :, :] = xpad[data_num, :, offset[0]:offset[0] + 28,
+                                    offset[1]:offset[1] + 28]
         if_flip = np.random.randint(2)
         if (if_flip):
             x[data_num, :, :, :] = x[data_num, :, :, ::-1]
@@ -187,7 +187,7 @@ def train_mnist_cnn(sgd,
         world_size = sgd.world_size
     else:
         # For Single GPU
-        dev = device.create_cuda_gpu()
+        dev = device.get_default_device()
         world_size = 1
 
     # create model
@@ -226,7 +226,7 @@ def train_mnist_cnn(sgd,
         test_correct = np.zeros(shape=[1], dtype=np.float32)
         train_loss = np.zeros(shape=[1], dtype=np.float32)
 
-        for b in range(num_train_batch):
+        for b in range(1):
             x = train_x[idx[b * batch_size:(b + 1) * batch_size]]
             x = augmentation(x, batch_size)
             y = train_y[idx[b * batch_size:(b + 1) * batch_size]]
@@ -245,7 +245,8 @@ def train_mnist_cnn(sgd,
                                                   topK=topK,
                                                   corr=corr)
             else:
-                sgd.backward_and_update(loss)
+                #sgd.backward_and_update(loss)
+                pass
 
         if DIST:
             # Reduce the Evaluation Accuracy and Loss from Multiple Devices
@@ -262,7 +263,7 @@ def train_mnist_cnn(sgd,
 
         # Evaluation Phase
         autograd.training = False
-        for b in range(num_test_batch):
+        for b in range(1):
             x = test_x[b * batch_size:(b + 1) * batch_size]
             y = test_y[b * batch_size:(b + 1) * batch_size]
             tx.copy_from_numpy(x)
