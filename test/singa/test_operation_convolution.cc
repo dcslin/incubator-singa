@@ -54,8 +54,10 @@ TEST(DNNLOperation_Convolution, Forward) {
   Tensor bias(Shape{num_filters});
   bias.CopyDataFromHostPtr(b, num_filters);
 
+    printf("start handle\n");
   ConvHandle conv_handle(in, {kernel_w, kernel_h}, stride, padding, c,
                          num_filters, bias_flag);
+    printf("start forward\n");
   Tensor out1 = CpuConvForward(in, weight, bias, conv_handle);
 
   const float *out_ptr1 = out1.data<float>();

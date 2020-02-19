@@ -61,6 +61,7 @@ ConvHandle::ConvHandle(const Tensor &input,
   col_height = in_channels * kernel_w * kernel_h;
   col_width = conv_height * conv_width;
   imagesize = input.Size() / batchsize;
+    printf("pass_");
 
 #ifdef USE_DNNL
   if (input.device()->lang() == kCpp) {
@@ -99,7 +100,7 @@ ConvHandle::ConvHandle(const Tensor &input,
     // convolution forward primitive descriptor is shared between forward and
     // backward process
     conv_d = new dnnl::convolution_forward::desc(
-        dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct,
+        dnnl::prop_kind::forward, dnnl::algorithm::convolution_direct,
         conv_x_md, conv_w_md, conv_b_md, conv_y_md, s_dims, p_dims, p_dims);
     printf("passb");
 
@@ -108,10 +109,8 @@ ConvHandle::ConvHandle(const Tensor &input,
     printf("passc");
 
     // reorder primitive descriptor
-    reorder_pd_x =
-        new dnnl::reorder::primitive_desc(eng, x_md, eng, conv_x_md, NULL);
-    reorder_pd_w =
-        new dnnl::reorder::primitive_desc(eng, w_md, eng, conv_w_md, NULL);
+    // reorder_pd_x = new dnnl::reorder::primitive_desc(eng, x_md, eng, conv_x_md, NULL);
+    // reorder_pd_w = new dnnl::reorder::primitive_desc(eng, w_md, eng, conv_w_md, NULL);
     printf("passd");
 
     // dnnl calculate dw and db in one go, a workaround to be compatible with
@@ -150,40 +149,52 @@ Tensor CpuConvForward(const Tensor &x, Tensor &W, Tensor &b,
   Shape shape{ch.batchsize, ch.num_filters, ch.conv_height, ch.conv_width};
   Tensor output(shape, dev, dtype);
 
-  output.device()->Exec([&output, &x, &W, &b, &ch](Context *ctx) {
+  Tensor x_reorder = x.Clone();
+
+  output.device()->Exec([&output, &x, &W, &b, &ch, &x_reorder](Context *ctx) {
 
     using namespace dnnl;
+    using tag = memory::format_tag;
+    using dt = memory::data_type;
 
     auto eng = ctx->dnnl_engine;
-    auto x_mem = memory(ch.x_md, eng, x.block()->mutable_data());
-    auto w_mem = memory(ch.w_md, eng, W.block()->mutable_data());
-    auto b_mem = memory(ch.b_md, eng, b.block()->mutable_data());
-    auto y_mem = memory(ch.y_md, eng, output.block()->mutable_data());
+    printf("start forward dnnl\n");
+    auto conv_user_src_memory = memory({ch.x_dims, dt::f32, tag::nchw}, eng, x.block()->mutable_data());
+    auto conv_user_weights_memory = memory({ch.w_dims, dt::f32, tag::giohw}, eng, W.block()->mutable_data());
+    auto conv_user_bias_memory = memory({ch.b_dims, dt::f32, tag::x}, eng, b.block()->mutable_data());
+    auto conv_dst_memory = memory(ch.conv_pd->dst_desc(), eng, output.block()->mutable_data());
 
-    auto conv_x_mem = memory(ch.conv_x_md, eng, x.block()->mutable_data());
-    auto conv_w_mem = memory(ch.conv_w_md, eng, W.block()->mutable_data());
-    auto conv_b_mem = memory(ch.conv_b_md, eng, b.block()->mutable_data());
-    auto conv_y_mem = memory(ch.conv_y_md, eng, output.block()->mutable_data());
+    printf("start forward dnnl - memory ok\n");
+
+    auto conv_src_memory = conv_user_src_memory;
+    if (ch.conv_pd->src_desc() != conv_user_src_memory.get_desc()) {
+        conv_src_memory = memory(ch.conv_pd->src_desc(), eng, x_reorder.block()->mutable_data());
+        reorder(conv_user_src_memory, conv_src_memory)
+          .execute(ctx->dnnl_stream, {{DNNL_ARG_FROM, conv_user_src_memory},
+                                      {DNNL_ARG_TO, conv_src_memory}});
+    }
+
+    printf("start forward dnnl - reorder src ok \n");
+    /*
+    auto conv_weights_memory = conv_user_weights_memory;
+    if (ch.conv_pd->weights_desc() != conv_user_weights_memory.get_desc()) {
+        conv_weights_memory = memory(ch.conv_pd->weights_desc(), eng);
+
+        reorder(conv_user_weights_memory, conv_weights_memory)
+          .execute(ctx->dnnl_stream, {{DNNL_ARG_FROM, conv_user_weights_memory},
+                                      {DNNL_ARG_TO, conv_weights_memory}});
+    }
+    */
 
     printf("pass1");
 
-    reorder(*ch.reorder_pd_x)
-        .execute(ctx->dnnl_stream,
-                 {{DNNL_ARG_SRC, x_mem}, {DNNL_ARG_DST, conv_x_mem}});
-
-    printf("pass2");
-
-    reorder(*ch.reorder_pd_w)
-        .execute(ctx->dnnl_stream,
-                 {{DNNL_ARG_SRC, w_mem}, {DNNL_ARG_DST, conv_w_mem}});
-
-    printf("pass3");
-
+    /*
     convolution_forward(*ch.conv_pd)
-        .execute(ctx->dnnl_stream, {{DNNL_ARG_SRC, conv_x_mem},
-                                    {DNNL_ARG_WEIGHTS, conv_w_mem},
-                                    {DNNL_ARG_BIAS, conv_b_mem},
-                                    {DNNL_ARG_DST, conv_y_mem}});
+        .execute(ctx->dnnl_stream, {{DNNL_ARG_SRC, conv_src_memory},
+                                    {DNNL_ARG_WEIGHTS, conv_weights_memory},
+                                    {DNNL_ARG_BIAS, conv_user_bias_memory},
+                                    {DNNL_ARG_DST, conv_dst_memory}});
+                                    */
     ctx->dnnl_stream.wait();
   }, {x.block(), W.block(), b.block()}, {output.block()});
 
