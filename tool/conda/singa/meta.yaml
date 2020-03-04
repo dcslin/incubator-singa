@@ -20,11 +20,11 @@
 # https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#templating-with-jinja
 # {% set data = load_setup_py_data(setup_file='../../../python/singa/setup.py', from_recipe_dir=True) %}
 
-{% set version = NEW_VERSION | "2.1.0.dev" %}
+{% set version = "2.1.0.dev" %}
 
 package:
   name: singa
-  version: {{ version }}
+  version: {{ environ.get('NEW_VERSION', version) }}
 
 source:
   path: ../../../
