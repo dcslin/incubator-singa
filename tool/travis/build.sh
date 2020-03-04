@@ -79,7 +79,7 @@ else
   set +x
   # upload the package onto anaconda cloud
 
-  ANACONDA_UPLOAD_TOKEN="sh-c76ce9b7-676b-402b-ac05-32e140ae5221"
+  ANACONDA_UPLOAD_TOKEN="sh-d62699bc-958d-4ea4-90ba-03ea6f80a043"
   USER="shicong"
   anaconda -t $ANACONDA_UPLOAD_TOKEN upload -u $USER -l main $CONDA_BLD_PATH/$OS/singa-*.tar.bz2 --force
 fi
