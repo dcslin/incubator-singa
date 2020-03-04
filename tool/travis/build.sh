@@ -36,6 +36,7 @@ RELEASE_TYPE="patch"
 
 if [[ "$TRAVIS_SECURE_ENV_VARS" != "false" ]]
 then
+  git fetch -t
   VERSION=`git describe --abbrev=0 --tags`
 
   VERSION_BITS=(${VERSION//./ })
