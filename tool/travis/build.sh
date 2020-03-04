@@ -56,7 +56,7 @@ then
     exit 1
   fi
 
-  NEW_VERSION="$VNUM1.$VNUM2.$VNUM3"
+  export NEW_VERSION="$VNUM1.$VNUM2.$VNUM3"
   echo "Updating $VERSION to $NEW_VERSION"
   # github access
   # git tag $NEW_VERSION
