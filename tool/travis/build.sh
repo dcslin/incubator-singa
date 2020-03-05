@@ -31,38 +31,7 @@ mkdir $CONDA_BLD_PATH
 
 ### DELETEME
 TRAVIS_SECURE_ENV_VARS="true"
-RELEASE_TYPE="patch"
 ### DELETEME
-
-if [[ "$TRAVIS_SECURE_ENV_VARS" != "false" ]]
-then
-  git fetch --unshallow
-  VERSION=`git describe --abbrev=0 --tags`
-
-  VERSION_BITS=(${VERSION//./ })
-
-  VNUM1=${VERSION_BITS[0]}
-  VNUM2=${VERSION_BITS[1]}
-  VNUM3=${VERSION_BITS[2]}
-
-  if [[ "$RELEASE_TYPE" == "major" ]]; then
-    VNUM1=$((VNUM1+1))
-  elif [[ "$RELEASE_TYPE" == "minor" ]]; then
-    VNUM2=$((VNUM2+1))
-  elif [[ "$RELEASE_TYPE" == "patch" ]]; then
-    VNUM3=$((VNUM3+1))
-  else
-    echo "Release type is one of [major|minor|patch]"
-    exit 1
-  fi
-
-  export NEW_VERSION="$VNUM1.$VNUM2.$VNUM3"
-  echo "Updating $VERSION to $NEW_VERSION"
-  # github access
-  # git tag $NEW_VERSION
-  # git push --tags
-  # echo "Tag created and pushed to github: $NEW_VERSION"
-fi
 
 conda build tool/conda/singa --python 3.6
 conda build tool/conda/singa --python 3.7
@@ -78,6 +47,10 @@ else
   # turn off debug to hide the token in travis log
   set +x
   # upload the package onto anaconda cloud
+
+  git fetch --unshallow
+  NEW_VERSION=`git describe --abbrev=0 --tags`
+  echo "Updating to new version $NEW_VERSION"
 
   ANACONDA_UPLOAD_TOKEN="sh-d62699bc-958d-4ea4-90ba-03ea6f80a043"
   USER="shicong"
