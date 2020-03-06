@@ -28,8 +28,11 @@ VNUM3=${VERSION_BITS[2]}
 
 if [[ "$RELEASE_TYPE" == "major" ]]; then
   VNUM1=$((VNUM1+1))
+  VNUM2=0
+  VNUM3=0
 elif [[ "$RELEASE_TYPE" == "minor" ]]; then
   VNUM2=$((VNUM2+1))
+  VNUM3=0
 elif [[ "$RELEASE_TYPE" == "patch" ]]; then
   VNUM3=$((VNUM3+1))
 else
