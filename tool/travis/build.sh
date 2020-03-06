@@ -31,6 +31,9 @@ mkdir $CONDA_BLD_PATH
 
 ### DELETEME
 TRAVIS_SECURE_ENV_VARS="true"
+git remote set-url origin https://github.com/dcslin/singa
+git fetch --unshallow
+git fetch --tags --force
 ### DELETEME
 
 conda build tool/conda/singa --python 3.6
@@ -47,6 +50,7 @@ else
   # turn off debug to hide the token in travis log
   set +x
   # upload the package onto anaconda cloud
+
 
   git fetch --unshallow
   NEW_VERSION=`git describe --abbrev=0 --tags`
