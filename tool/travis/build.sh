@@ -32,7 +32,12 @@ mkdir $CONDA_BLD_PATH
 ### DELETEME
 TRAVIS_SECURE_ENV_VARS="true"
 git remote set-url origin https://github.com/dcslin/singa
+### DELETEME
+
+# get all tags
 git fetch --unshallow
+
+### DELETEME
 git fetch --tags --force
 ### DELETEME
 
@@ -52,11 +57,14 @@ else
   # upload the package onto anaconda cloud
 
 
-  git fetch --unshallow
+### DELETEME
+  # git fetch --unshallow
   NEW_VERSION=`git describe --abbrev=0 --tags`
   echo "Updating to new version $NEW_VERSION"
 
   ANACONDA_UPLOAD_TOKEN="sh-d62699bc-958d-4ea4-90ba-03ea6f80a043"
   USER="shicong"
+### DELETEME
+
   anaconda -t $ANACONDA_UPLOAD_TOKEN upload -u $USER -l main $CONDA_BLD_PATH/$OS/singa-*.tar.bz2 --force
 fi
