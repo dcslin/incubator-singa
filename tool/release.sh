@@ -43,7 +43,7 @@ fi
 NEW_VERSION="$VNUM1.$VNUM2.$VNUM3"
 echo "Updating $VERSION to $NEW_VERSION"
 
-git tag -a $NEW_VERSION
+git tag -a $NEW_VERSION -m "Version: $NEW_VERSION"
 git push dcslin -f --tags
 echo "Tag created and pushed to github: $NEW_VERSION"
 
