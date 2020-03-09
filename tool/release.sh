@@ -17,7 +17,7 @@
 #!/bin/bash
 RELEASE_TYPE=$1
 
-git fetch --unshallow
+git fetch --all --force
 VERSION=`git describe --abbrev=0 --tags`
 
 VERSION_BITS=(${VERSION//./ })
