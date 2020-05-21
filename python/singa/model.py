@@ -121,6 +121,7 @@ class Model(layer.Layer, metaclass=Graph):
         self._results = None
 
     def compile(self, inputs, is_train=True, use_graph=False, sequential=False):
+        self.set_names()
         self._device.EnableGraph(True)
         self.forward(*inputs)
         self._device.EnableGraph(False)
@@ -191,48 +192,27 @@ class Model(layer.Layer, metaclass=Graph):
         else:
             return self.forward(*input, **kwargs)
 
-    def _flatten_dictionary(self,d, parent_key='', sep=':'):
-        items = []
-        for k, v in d.items():
-            new_key = parent_key + sep + k if parent_key else k
-            if isinstance(v, dict):
-                items.extend(self._flatten_dictionary(v, new_key, sep=sep).items())
-            else:
-                items.append((new_key, v))
-        return dict(items)
+    def save_states(self, fpath, aux_states={}):
+        """Save states.
 
-    def _de_flatten_dictionary(self,d):
-        def extend_d_tree(leaf, k, v, sep=":"):
-            if sep in k:
-                lead_k, trail_k = k.split(sep,1)
-                new_leaf = leaf.setdefault(lead_k, {})
-                extend_d_tree(new_leaf, trail_k, v)
-            else:
-                leaf[k] = v
+        Args:
+            fpath: output file path (without the extension)
+            aux_states(dict): values are standard data types or Tensor,
+                                e.g., epoch ID, learning rate, optimizer states
+        """
+        pass
 
-        root=dict()
-        for k, v in d.items():
-            extend_d_tree(root, k, v)
-        return root
+    def load_states(self, fpath):
+        """Load the model states and auxiliary states from disk.
 
-    def get_params(self):
-        params = super().get_params()
-        # input params are nested {"l1": {"l2": {"l3": {"W": []}}}}
-        # flatten into {"l1:l2:l3:W": []}
-        # recursively flatten params nested dict
-        return self._flatten_dictionary(params)
+        Usage:
+            m = MyModel()
+            m.compile(...)
+            aux_states = m.load_states('mymodel.zip')
 
-    def set_params(self, params):
-        # input params are flatten {"l1:l2:l3:W": []}
-        # deflat into {"l1": {"l2": {"l3": {"W": []}}}}
-        root = self._de_flatten_dictionary(params)
-        super().set_params(**root)
-
-    def get_states(self):
-        states = super().get_states()
-        return states
-
-    def set_states(self, states):
-        root = self._de_flatten_dictionary(states)
-        states = super().set_states(**root)
-        return states
+        Args:
+            path: input file path (without the extension)
+        Returns:
+            dict
+        """
+        pass
