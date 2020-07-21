@@ -21,6 +21,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT(singa)
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Thirdparty)
+add_subdirectory(/root/singa-hf2/backward-cpp)
+# list(APPEND CMAKE_MODULE_PATH /root/singa-hf2/backward-cpp)
+# find_package(Backward)
 
 include(GetGitRevisionDescription)
 git_describe(VERSION --tags --dirty=-d)

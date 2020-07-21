@@ -1,3 +1,6 @@
 [submodule "rafiki"]
 	path = rafiki
 	url = https://github.com/nginyc/rafiki.git
+[submodule "backward-cpp"]
+	path = backward-cpp
+	url = https://github.com/bombela/backward-cpp.git

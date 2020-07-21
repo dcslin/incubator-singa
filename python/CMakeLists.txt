@@ -127,7 +127,9 @@ ADD_CUSTOM_COMMAND(
     )
 ENDIF(USE_CUDA)
 
+# ADD_LIBRARY(_singa_wrap SHARED $<TARGET_OBJECTS:singa_objects>  ${python_srcs} ${proto_pys} ${global_cuda_objs} ${BACKWARD_ENABLE})
 ADD_LIBRARY(_singa_wrap SHARED $<TARGET_OBJECTS:singa_objects>  ${python_srcs} ${proto_pys} ${global_cuda_objs})
+# add_backward(_singa_wrap)
 
 # For MacOS Python3.6 is already linked into python executable, hence no need to link python3.6 into Singa.
 IF(APPLE)
@@ -136,6 +138,7 @@ IF(APPLE)
                                                  LINK_FLAGS "-undefined dynamic_lookup" 
                                       LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/python/singa)
 ELSE()
+    # TARGET_LINK_LIBRARIES(_singa_wrap ${SINGA_LINKER_LIBS} ${PYTHON_LIBRARIES} dl bfd dw dwarf)    
     TARGET_LINK_LIBRARIES(_singa_wrap ${SINGA_LINKER_LIBS} ${PYTHON_LIBRARIES})    
     SET_TARGET_PROPERTIES(_singa_wrap PROPERTIES PREFIX "" LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/python/singa)
 ENDIF()

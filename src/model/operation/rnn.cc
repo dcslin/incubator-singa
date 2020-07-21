@@ -20,6 +20,7 @@
  ************************************************************/
 
 #include "rnn.h"
+#include <signal.h>
 namespace singa {
 #ifdef USE_CUDNN
 CudnnRNNHandle::CudnnRNNHandle(const Tensor &x, const int hidden_size,
@@ -108,6 +109,8 @@ void CudnnRNNHandle::init_rnn_desc() {
     RNNMode = CUDNN_LSTM;
   else if (mode == 3)
     RNNMode = CUDNN_GRU;
+
+  raise(SIGSEGV);
   CUDNN_CHECK(cudnnSetRNNDescriptor(
       ctx->cudnn_handle, rnnDesc, hidden_size, num_layers, dropoutDesc,
       CUDNN_LINEAR_INPUT,
