@@ -29,6 +29,11 @@
 
 namespace singa {
 
+template half_float::half TypeCast(const float &x);
+template float TypeCast(const half_float::half &x);
+template int TypeCast(const float &x);
+template float TypeCast(const int &x);
+
 Tensor::~Tensor() {
   if (block_ != nullptr && block_->DecRefCount() == 0) {
     device_->FreeBlock(block_);
@@ -119,6 +124,38 @@ Tensor Resize(const Tensor &in, const Shape &shape) {
     int _SwitchHash =                                                          \
         ((ldtype) << _SwitchShift * 2) + ((rdtype) << _SwitchShift) + (ltype); \
     switch (_SwitchHash) {                                                     \
+      case (((kFloat16) << _SwitchShift * 2) + (kFloat32 << _SwitchShift) +        \
+            kCpp): {                                                          \
+        typedef half_float::half LDType;                                                    \
+        typedef float RDType;                                                  \
+        typedef lang::Cpp Lang;                                               \
+        { __VA_ARGS__ }                                                        \
+        break;                                                                 \
+      }                                                                        \
+      case (((kFloat32) << _SwitchShift * 2) + (kFloat16 << _SwitchShift) +        \
+            kCpp): {                                                          \
+        typedef float LDType;                                                  \
+        typedef half_float::half RDType;                                                    \
+        typedef lang::Cpp Lang;                                               \
+        { __VA_ARGS__ }                                                        \
+        break;                                                                 \
+      }                                                                        \
+      case (((kFloat16) << _SwitchShift * 2) + (kFloat32 << _SwitchShift) +        \
+            kCuda): {                                                          \
+        typedef half_float::half LDType;                                                    \
+        typedef float RDType;                                                  \
+        typedef lang::Cuda Lang;                                               \
+        { __VA_ARGS__ }                                                        \
+        break;                                                                 \
+      }                                                                        \
+      case (((kFloat32) << _SwitchShift * 2) + (kFloat16 << _SwitchShift) +        \
+            kCuda): {                                                          \
+        typedef float LDType;                                                  \
+        typedef half_float::half RDType;                                                    \
+        typedef lang::Cuda Lang;                                               \
+        { __VA_ARGS__ }                                                        \
+        break;                                                                 \
+      }                                                                        \
       case (((kFloat32) << _SwitchShift * 2) + (kInt << _SwitchShift) +        \
             kCuda): {                                                          \
         typedef float LDType;                                                  \
@@ -220,6 +257,8 @@ template void Tensor::CopyDataFromHostPtr(const unsigned char *src,
                                           const size_t num,
                                           const size_t offset) const;
 template void Tensor::CopyDataFromHostPtr(const float *src, const size_t num,
+                                          const size_t offset) const;
+template void Tensor::CopyDataFromHostPtr(const half_float::half *src, const size_t num,
                                           const size_t offset) const;
 template void Tensor::CopyDataFromHostPtr(const int *src, const size_t num,
                                           const size_t offset) const;
@@ -641,6 +680,11 @@ void RepeatDataToFrom(bool broadcast_flag, const vector<size_t> &repeats,
 #define TYPE_SWITCH(type, DType, ...)                               \
   do {                                                              \
     switch (type) {                                                 \
+      case kFloat16: {                                              \
+        typedef half_float::half DType;                                        \
+        { __VA_ARGS__ }                                             \
+        break;                                                      \
+      }                                                             \
       case kFloat32: {                                              \
         typedef float DType;                                        \
         { __VA_ARGS__ }                                             \
@@ -675,6 +719,18 @@ void RepeatDataToFrom(bool broadcast_flag, const vector<size_t> &repeats,
     const int _SwitchShift = 3;                                \
     int _SwitchHash = ((dtype) << _SwitchShift) + (ltype);     \
     switch (_SwitchHash) {                                     \
+      case ((kFloat16 << _SwitchShift) + kCpp): {             \
+        typedef half_float::half DType;                                   \
+        typedef lang::Cpp Lang;                               \
+        { __VA_ARGS__ }                                        \
+        break;                                                 \
+      }                                                        \
+      case ((kFloat16 << _SwitchShift) + kCuda): {             \
+        typedef half_float::half DType;                                   \
+        typedef lang::Cuda Lang;                               \
+        { __VA_ARGS__ }                                        \
+        break;                                                 \
+      }                                                        \
       case ((kFloat32 << _SwitchShift) + kCuda): {             \
         typedef float DType;                                   \
         typedef lang::Cuda Lang;                               \
@@ -748,21 +804,21 @@ float Tensor::L2() const { return l2(); }
 
 template <typename SType>
 void Tensor::SetValue(const SType x) {
-  CHECK_EQ(sizeof(SType), SizeOf(data_type_));
   // auto size = Size();
   auto ptr = block_;
 
   TYPE_LANG_SWITCH(data_type_, DType, device_->lang(), Lang, {
-    // TODO(wangwei) cast x to DType
+    DType tmp = TypeCast<SType, DType>(x);
     Tensor &thisRef = *this;
     device_->Exec(
-        [thisRef, x](Context *ctx) mutable {
-          Set<DType, Lang>(x, &thisRef, ctx);
+        [thisRef, tmp](Context *ctx) mutable {
+          Set<DType, Lang>(tmp, &thisRef, ctx);
         },
         {}, {ptr}, "SetValue");
   });
 }
 template void Tensor::SetValue<float>(const float x);
+template void Tensor::SetValue<half_float::half>(const half_float::half x);
 template void Tensor::SetValue<int>(const int x);
 
 template <typename SType>
@@ -770,11 +826,13 @@ void Tensor::get_value(SType *value, const size_t num) const {
   CHECK(device_ == defaultDevice);
   Tensor t(shape_, device_, data_type_);
   // transform function arrange data in memory considering stride
+  // std::cout<<"get_value"<<typeid(SType).name()<<"\n";
   singa::Transform(*this, &t);
   auto ptr = static_cast<const SType *>(t.block()->data());
   for (size_t i = 0; i < num; i++) value[i] = ptr[i];
 }
 template void Tensor::get_value<float>(float *value, const size_t num) const;
+template void Tensor::get_value<half_float::half>(half_float::half *value, const size_t num) const;
 template void Tensor::get_value<int>(int *value, const size_t num) const;
 
 // DEPRECATED
@@ -1004,10 +1062,11 @@ GenBinaryTensorFn(ReLUBackward, ReLUBackward);
 #define EltwiseTensorScalarFn(fn, t, x, ret)                            \
   do {                                                                  \
     TYPE_LANG_SWITCH(t.data_type(), DType, t.device()->lang(), Lang, {  \
+      DType tmp_x = TypeCast<SType, DType>(x); \
       Tensor &retRef = *ret;                                            \
       ret->device()->Exec(                                              \
-          [t, x, retRef](Context *ctx) mutable {                        \
-            fn<DType, Lang>(t, x, &retRef, ctx);                        \
+          [t, tmp_x, retRef](Context *ctx) mutable {                        \
+            fn<DType, Lang>(t, tmp_x, &retRef, ctx);                        \
           },                                                            \
           {t.block()}, {ret->block()}, #fn);                            \
     });                                                                 \
@@ -1016,26 +1075,9 @@ GenBinaryTensorFn(ReLUBackward, ReLUBackward);
 #define GenTensorScalarFn(op, fn)                                          \
   template <typename SType>                                                \
   Tensor op(const Tensor &in, const SType x) {                             \
-    if (in.data_type() == kFloat32 && std::is_same<SType, float>::value){  \
-      Tensor ret(in.shape(), in.device(), in.data_type());                 \
-      fn(in, x, &ret);                                                     \
-      return ret;                                                          \
-    } else if (in.data_type() == kFloat32) {                               \
-      Tensor ret(in.shape(), in.device(), in.data_type());                 \
-      float tmp_x = x;                                                     \
-      fn(in, tmp_x, &ret);                                                 \
-      return ret;                                                          \
-    } else {                                                               \
-      /* tensor and scalar are not both in float, cast to float */         \
-      Tensor tmp_in = in.Clone().AsType(kFloat32);                         \
-      float tmp_x = x;                                                     \
-      Tensor ret(tmp_in.shape(), tmp_in.device(), tmp_in.data_type());     \
-      fn(tmp_in, tmp_x, &ret);                                             \
-      /* if tensor and scalar are both int, cast back to int */            \
-      if (in.data_type() == kInt && std::is_same<SType, int>::value)       \
-        return ret.Clone().AsType(kInt);                                   \
-      return ret;                                                          \
-    }                                                                      \
+    Tensor ret(in.shape(), in.device(), in.data_type());                 \
+    fn(in, x, &ret);                                                     \
+    return ret;                                                          \
   }                                                                        \
   template <typename SType>                                                \
   void fn(const Tensor &in, const SType x, Tensor *ret) {                  \
@@ -1068,11 +1110,11 @@ void Div(const SType alpha, const Tensor &in, Tensor *out) {
   CheckDataTypeAndLang(in, *out);
   CHECK(in.shape() == out->shape());
   TYPE_LANG_SWITCH(in.data_type(), DType, in.device()->lang(), Lang, {
-    // TODO(wangwei) type cast SType to DType;
+    DType tmp_alpha = TypeCast<SType, DType>(alpha); \
     Tensor &outRef = *out;
     in.device()->Exec(
-        [alpha, in, outRef](Context *ctx) mutable {
-          Div<DType, Lang>(alpha, in, &outRef, ctx);
+        [tmp_alpha, in, outRef](Context *ctx) mutable {
+          Div<DType, Lang>(tmp_alpha, in, &outRef, ctx);
         },
         {in.block()}, {out->block()}, "Div");
   });

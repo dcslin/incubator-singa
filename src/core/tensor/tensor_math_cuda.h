@@ -29,6 +29,7 @@
 #include "singa/core/common.h"
 #include "singa/core/tensor.h"
 #include "singa/utils/cuda_utils.h"
+#include "../../model/layer/cudnn_utils.h"
 
 #define check_cudnn(expression)                          \
   {                                                      \
@@ -134,7 +135,7 @@ cudnnTensorDescriptor_t generate_tensor_nd_desc(const Tensor& x) {
   // LOG(INFO) << vec2str(shape);
   // LOG(INFO) << vec2str(stride);
   // LOG(INFO) << "";
-  check_cudnn(cudnnSetTensorNdDescriptor(x_desc, CUDNN_DATA_FLOAT,
+  check_cudnn(cudnnSetTensorNdDescriptor(x_desc, GetCudnnDataType(x.data_type()),
                                          generate_dim_cuda(y), shape.data(),
                                          stride.data()));
 
@@ -170,6 +171,24 @@ void Abs<float, lang::Cuda>(const Tensor& in, Tensor* out, Context* ctx) {
 }
 
 template <>
+void CastCopy<float, half_float::half, lang::Cuda>(const Tensor* src, Tensor* dst,
+                                      Context* ctx) {
+  /* cpp half is for labeling only, cuda requires __half */
+  const float* srcPtr = static_cast<const float*>(src->block()->data());
+  __half* dstPtr = static_cast<__half*>(dst->block()->mutable_data());
+  cuda::float2half(dst->Size(), srcPtr, dstPtr, ctx->stream);
+}
+
+template <>
+void CastCopy<half_float::half, float, lang::Cuda>(const Tensor* src, Tensor* dst,
+                                      Context* ctx) {
+  /* cpp half is for labeling only, cuda requires __half */
+  const __half* srcPtr = static_cast<const __half*>(src->block()->data());
+  float* dstPtr = static_cast<float*>(dst->block()->mutable_data());
+  cuda::half2float(dst->Size(), srcPtr, dstPtr, ctx->stream);
+}
+
+template <>
 void CastCopy<float, int, lang::Cuda>(const Tensor* src, Tensor* dst,
                                       Context* ctx) {
   const float* srcPtr = static_cast<const float*>(src->block()->data());
@@ -191,6 +210,12 @@ void Set<float, lang::Cuda>(const float x, Tensor* out, Context* ctx) {
 
   check_cudnn(cudnnSetTensor(ctx->cudnn_handle, generate_tensor_nd_desc(*out),
                              outPtr, (void*)(&x)));
+}
+
+template <>
+void Set<half_float::half, lang::Cuda>(const half_float::half x, Tensor* out, Context* ctx) {
+  vector<half_float::half> data_src(out->size(), x);
+  out->CopyDataFromHostPtr(data_src.data(), out->size(), 0);
 }
 
 template <>
@@ -226,6 +251,19 @@ inline Tensor get_broadcasted_tensor(const Tensor& in1, Context* ctx) {
                      ctx->stream);
 
   return in1Bc;
+}
+
+template <>
+void Transform<half_float::half, lang::Cuda>(const Tensor& in, Tensor* out, Context* ctx) {
+  const void* inPtr = in.block()->data();
+  void* outPtr = out->block()->mutable_data();
+
+  float alpha = 1.0;
+  float beta = 0.0;
+
+  check_cudnn(cudnnTransformTensor(
+      ctx->cudnn_handle, (void*)(&alpha), generate_tensor_nd_desc(in), inPtr,
+      (void*)(&beta), generate_tensor_nd_desc(*out), outPtr));
 }
 
 template <>
@@ -864,6 +902,14 @@ void Gaussian<float, lang::Cuda>(const float mean, const float std, Tensor* out,
   } else {
     CURAND_CHECK(curandGenerateNormal(rgen, outPtr, num, mean, std));
   }
+}
+
+template <>
+void Gaussian<half_float::half, lang::Cuda>(const half_float::half mean, const half_float::half std, Tensor* out,
+                                 Context* ctx) {
+  Tensor tmp(out->shape(), out->device(), kFloat32);
+  Gaussian<float, lang::Cuda>(static_cast<float>(mean), static_cast<float>(std), &tmp, ctx);
+  CastCopy<float, half_float::half, lang::Cuda>(&tmp, out, ctx);
 }
 
 // =========================Blas operations==================================

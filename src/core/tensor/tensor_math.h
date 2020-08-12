@@ -350,7 +350,7 @@ void Bernoulli(const float p, Tensor *out, Context *ctx) {
 // The random generator should be extracted from ctx.
 // If DType is not float, then convert the mean and std to DType
 template <typename DType, typename Lang>
-void Gaussian(const float mean, const float std, Tensor *out, Context *ctx) {
+void Gaussian(const DType mean, const DType std, Tensor *out, Context *ctx) {
   LOG(FATAL) << "Gaussian Not Implemented";
 }
 // The random generator should be extracted from ctx.

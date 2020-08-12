@@ -67,6 +67,7 @@ from .device import get_default_device
 
 int32 = core_pb2.kInt
 float32 = core_pb2.kFloat32
+float16 = core_pb2.kFloat16
 CTensor = singa.Tensor
 
 
@@ -271,6 +272,8 @@ class Tensor(object):
             pass
         elif dtype == singa.kFloat32:
             pass
+        elif dtype == singa.kFloat16:
+            pass
         elif dtype == 'int':
             dtype = singa.kInt
         elif dtype == 'float':
@@ -342,10 +345,12 @@ class Tensor(object):
         dt = np_array.dtype
         if dt == np.float32:
             self.data.CopyFloatDataFromHostPtr(np_array)
+        elif dt == np.float16:
+            self.data.CopyHalfFloatDataFromHostPtr(np_array)
         elif dt == np.int or dt == np.int32:
             self.data.CopyIntDataFromHostPtr(np_array)
         else:
-            print('Not implemented yet for ', dt)
+            raise NotImplementedError('Not implemented yet for ', dt)
 
     def copy_data(self, t):
         '''Copy data from other Tensor instance.
@@ -864,6 +869,8 @@ def from_numpy(np_array, dev=None):
 
     if np_array.dtype == np.float32:
         dtype = core_pb2.kFloat32
+    elif np_array.dtype == np.float16:
+        dtype = float16
     else:
         assert np_array.dtype == np.int32, \
             'Only float and int tensors are supported'
@@ -901,6 +908,8 @@ def to_numpy(t):
     th = to_host(t)
     if th.dtype == core_pb2.kFloat32:
         np_array = th.data.GetFloatValue(int(th.size()))
+    elif th.dtype == float16:
+        np_array = th.data.GetHalfFloatValue(int(th.size()))
     elif th.dtype == core_pb2.kInt:
         np_array = th.data.GetIntValue(int(th.size()))
     else:
@@ -1758,7 +1767,7 @@ def copy_from_numpy(data, np_array):
     elif dt == np.int or dt == np.int32:
         data.CopyIntDataFromHostPtr(np_array)
     else:
-        print('Not implemented yet for ', dt)
+        raise NotImplementedError('Not implemented yet for ', dt)
 
 
 def concatenate(tensors, axis):

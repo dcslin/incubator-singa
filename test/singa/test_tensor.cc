@@ -68,7 +68,58 @@ TEST(TensorClass, Reshape) {
   EXPECT_TRUE(o.shape() != t.shape());
 }
 
+TEST(TensorClass, GetValueF16Cpu) {
+  using namespace half_float::literal;
+  auto cpu = std::make_shared<singa::CppCPU>();
+  auto cuda = std::make_shared<singa::CudaGPU>();
+  Tensor a({2,3}, cpu, singa::kFloat16);
+  a.SetValue(0.1_h);
+  a.ToDevice(cuda);
+  a.ToDevice(cpu);
+  const half_float::half* dptr1 = static_cast<const half_float::half*>(a.block()->data());
+  for (int i=0;i<a.size();i++){
+    std::cout<<dptr1[i];
+  }
+}
+
 #ifdef USE_CUDA
+
+TEST(TensorClass, GetValueF16Cuda) {
+  using namespace half_float::literal;
+  auto cpu = std::make_shared<singa::CppCPU>();
+  auto cuda = std::make_shared<singa::CudaGPU>();
+  Tensor a({2,3}, cuda, singa::kFloat16);
+  a.SetValue(0.33333_h);
+  a.ToDevice(cpu);
+  const half_float::half* dptr1 = static_cast<const half_float::half*>(a.block()->data());
+  // const __half* dptr1 = static_cast<const __half*>(a.block()->data());
+  for (int i=0;i<a.size();i++){
+    std::cout<<dptr1[i];
+  }
+
+  // half_float::half b(0.33333_h);
+  // __half b(0.3333f);
+  // void* dptr2 = static_cast<void*>(&b);
+  // std::cout<< dptr2 << std::endl;
+
+  // __half* dptr3 = static_cast<__half*>(dptr2);
+  // std::cout<< dptr3 << *dptr3 << std::endl;
+
+  // half_float::half* dptr = static_cast<half_float::half*>(dptr2);
+  // std::cout<< dptr << *dptr << std::endl;
+
+  // copy array
+  // Tensor c({2,3}, cuda, singa::kFloat16);
+// void Tensor::CopyDataFromHostPtr(const DType *src, const size_t num,
+//                                  const size_t offset) const {
+  // vector<half_float::half> data_src(c.size(), 0.3333_h);
+  // c.CopyDataFromHostPtr(data_src.data(), c.size(), 0);
+  // c.ToDevice(cpu);
+  // const half_float::half* dptrc = static_cast<const half_float::half*>(c.block()->data());
+  // for (int i=0;i<a.size();i++){
+  //   std::cout<<"c:"<<dptrc[i];
+  // }
+}
 
 TEST(TensorClass, FloatAsTypeIntCuda) {
   auto cuda = std::make_shared<singa::CudaGPU>();

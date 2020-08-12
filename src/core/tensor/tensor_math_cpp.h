@@ -241,6 +241,22 @@ void Abs<float, lang::Cpp>(const Tensor &in, Tensor *out, Context *ctx) {
 }
 
 template <>
+void CastCopy<float, half_float::half, lang::Cpp>(const Tensor *src, Tensor *dst,
+                                     Context *ctx) {
+  half_float::half *dst_array = static_cast<half_float::half *>(dst->block()->mutable_data());
+  const float *src_array = static_cast<const float *>(src->block()->data());
+  for (int i = 0; i < dst->Size(); ++i) dst_array[i] = static_cast<half_float::half>(src_array[i]);
+}
+
+template <>
+void CastCopy<half_float::half, float, lang::Cpp>(const Tensor *src, Tensor *dst,
+                                     Context *ctx) {
+  float *dst_array = static_cast<float *>(dst->block()->mutable_data());
+  const half_float::half *src_array = static_cast<const half_float::half *>(src->block()->data());
+  for (int i = 0; i < dst->Size(); ++i) dst_array[i] = static_cast<float>(src_array[i]);
+}
+
+template <>
 void CastCopy<float, int, lang::Cpp>(const Tensor *src, Tensor *dst,
                                      Context *ctx) {
   int *dst_array = static_cast<int *>(dst->block()->mutable_data());
@@ -563,6 +579,12 @@ void ReLU<float, lang::Cpp>(const Tensor &in, Tensor *out, Context *ctx) {
 }
 
 template <>
+void Set<half_float::half, lang::Cpp>(const half_float::half x, Tensor *out, Context *ctx) {
+  half_float::half *outPtr = static_cast<half_float::half *>(out->block()->mutable_data());
+  for (size_t i = 0; i < out->Size(); i++) outPtr[i] = x;
+}
+
+template <>
 void Set<float, lang::Cpp>(const float x, Tensor *out, Context *ctx) {
   float *outPtr = static_cast<float *>(out->block()->mutable_data());
   for (size_t i = 0; i < out->Size(); i++) outPtr[i] = x;
@@ -654,6 +676,12 @@ void Transform<float, lang::Cpp>(const Tensor &in, Tensor *out, Context *ctx) {
 }
 
 template <>
+void Transform<half_float::half, lang::Cpp>(const Tensor &in, Tensor *out, Context *ctx) {
+  auto identity = [](half_float::half a) { return a; };
+  traverse_unary<half_float::half>(in, out, identity);
+}
+
+template <>
 void Transform<int, lang::Cpp>(const Tensor &in, Tensor *out, Context *ctx) {
   auto identity = [](int a) { return a; };
   traverse_unary<int>(in, out, identity);
@@ -676,6 +704,14 @@ void Gaussian<float, lang::Cpp>(const float mean, const float std, Tensor *out,
   for (size_t i = 0; i < out->Size(); i++) {
     outPtr[i] = static_cast<float>(distribution(ctx->random_generator));
   }
+}
+
+template <>
+void Gaussian<half_float::half, lang::Cpp>(const half_float::half mean, const half_float::half std, Tensor *out,
+                                Context *ctx) {
+  Tensor tmp(out->shape(), out->device(), kFloat32);
+  Gaussian<float, lang::Cpp>(static_cast<float>(mean), static_cast<float>(std), &tmp, ctx);
+  CastCopy<float, half_float::half, lang::Cpp>(&tmp, out, ctx);
 }
 
 template <>

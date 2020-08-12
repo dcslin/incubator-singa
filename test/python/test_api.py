@@ -24,7 +24,7 @@ import math
 import numpy as np
 
 from singa import singa_wrap as singa_api
-from singa import tensor
+from singa import tensor, layer
 from cuda_helper import gpu_dev, cpu_dev
 
 
@@ -904,6 +904,145 @@ class TestAPI(unittest.TestCase):
         x.copy_from_numpy(q)
         y = tensor._call_singa_func(singa_api.RoundE, x.data)
         np.testing.assert_array_almost_equal(ans, tensor.to_numpy(y))
+    
+    def test_f16_set_value(self, dev=cpu_dev):
+        np.set_printoptions(precision=7)
+        x = tensor.Tensor((2,3), dev, tensor.float16)
+        x.set_value(0.333333)
+        x = tensor.to_numpy(x)
+        print(x)
+        x = x.astype(np.float32)
+        print(x)
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_set_value_gpu(self, dev=gpu_dev):
+        self.test_f16_set_value(dev=dev)
+
+    def test_f16_from_numpy(self, dev=cpu_dev):
+        np_val = np.random.random((2,3)).astype(np.float16)
+        print(np_val)
+
+        a = tensor.from_numpy(np_val)
+        a.to_device(dev)
+        a = tensor.to_numpy(a)
+        print(a)
+        print(a.dtype)
+
+        a = tensor.Tensor((2,3), dev, tensor.float16)
+        a.copy_from_numpy(np_val)
+        a = a.transpose()
+        a = tensor.to_numpy(a)
+        print(a)
+        print(a.dtype)
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_from_numpy_gpu(self, dev=gpu_dev):
+        self.test_f16_from_numpy(dev=dev)
+
+    def test_f16_gaussian(self,dev=cpu_dev):
+        a = tensor.Tensor((2,3), dev, tensor.float16)
+        a.gaussian(0,1)
+        print(a)
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_gaussian_gpu(self,dev=gpu_dev):
+        self.test_f16_gaussian(dev=dev)
+
+
+    def test_f16_as_type(self, dev=cpu_dev):
+        a = tensor.Tensor((2,3), dev, tensor.float16)
+        a.gaussian(0,1)
+        print(a)
+        a = a.as_type(tensor.float32)
+        print(a)
+        a = a.as_type(tensor.float16)
+        print(a)
+    
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_as_type_gpu(self, dev=gpu_dev):
+        self.test_f16_as_type(dev=dev)
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_rnn_layer(self, dev=gpu_dev):
+        x=tensor.Tensor((2,3,4),dev,tensor.float16)
+        x.gaussian(0,1)
+        lstm = layer.CudnnRNN(5)
+        y=lstm(x)
+        assert y.dtype == x.dtype
+        print(y)
+        pass
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_conv_layer(self, dev=gpu_dev):
+        x=tensor.Tensor((2,3,4,5),dev,tensor.float16)
+        x.gaussian(0,1)
+        conv = layer.Conv2d(3,(1,1))
+        y = conv(x)
+        print(y)
+        print(y.shape)
+        assert y.dtype == x.dtype
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_pool_layer(self, dev=gpu_dev):
+        x=tensor.Tensor((2,3,4,5),dev,tensor.float16)
+        x.gaussian(0,1)
+        pool = layer.MaxPool2d((1,1))
+        y=pool(x)
+        print(y)
+        print(y.shape)
+        assert y.dtype == x.dtype
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_bn_layer(self, dev=gpu_dev):
+        x=tensor.Tensor((2,3,4,5),dev,tensor.float16)
+        x.gaussian(0,1)
+        bn = layer.BatchNorm2d((1,1))
+        y=bn(x)
+        print(y)
+        print(y.shape)
+        assert y.dtype == x.dtype
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_linear_layer(self, dev=gpu_dev):
+        x=tensor.Tensor((2,3),dev,tensor.float16)
+        x.gaussian(0,1)
+        linear = layer.Linear(4)
+        y=linear(x)
+        print(y)
+        print(y.shape)
+        assert y.dtype == x.dtype
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_softmax_cross_entropy_layer(self, dev=gpu_dev):
+        x=tensor.Tensor((2,3),dev,tensor.float16)
+        x.gaussian(0,1)
+        y=tensor.Tensor((2,3),dev,tensor.float16)
+        y.gaussian(0,1)
+        sce = layer.SoftMaxCrossEntropy()
+        loss=sce(x,y)
+        print(loss)
+        print(loss.shape)
+        assert loss.dtype == x.dtype
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_relu_layer(self, dev=gpu_dev):
+        x=tensor.Tensor((2,3),dev,tensor.float16)
+        x.gaussian(0,1)
+        relu = layer.ReLU()
+        y=relu(x)
+        print(y)
+        print(y.shape)
+        assert y.dtype == x.dtype
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_flatten_layer(self, dev=gpu_dev):
+        x=tensor.Tensor((2,3),dev,tensor.float16)
+        x.gaussian(0,1)
+        flatten = layer.Flatten()
+        y=flatten(x)
+        print(y)
+        print(y.shape)
+        assert y.dtype == x.dtype
 
 
 if __name__ == '__main__':

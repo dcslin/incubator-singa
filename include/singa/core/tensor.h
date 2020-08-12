@@ -26,6 +26,7 @@
 #include "singa/core/device.h"
 #include "singa/proto/core.pb.h"
 #include "singa/utils/logging.h"
+#include "half.hpp"
 
 using std::tuple;
 using std::vector;
@@ -312,7 +313,7 @@ inline void CheckDataTypeAndLang(const Tensor &in1, const Tensor &in2) {
 
 template <typename FromType, typename ToType>
 ToType TypeCast(const FromType &x) {
-  // TODO(wangwei) cast fp16; prevent some casts, e.g., float to char
+  // TODO(wangwei) prevent some casts, e.g., float to char
   return static_cast<ToType>(x);
 }
 
