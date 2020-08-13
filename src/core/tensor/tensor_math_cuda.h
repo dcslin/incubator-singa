@@ -385,6 +385,15 @@ void EltwiseMult<float, lang::Cuda>(const Tensor& in, const float x,
   cuda::mult(num, inPtr, x, outPtr, ctx->stream);
 }
 
+template <>
+void EltwiseMult<half_float::half, lang::Cuda>(const Tensor& in, const half_float::half x,
+                                    Tensor* out, Context* ctx) {
+  const __half* inPtr = static_cast<const __half*>(in.block()->data());
+  __half* outPtr = static_cast<__half*>(out->block()->mutable_data());
+  const size_t num = in.Size();
+  cuda::mult(num, inPtr, static_cast<__half>(x), outPtr, ctx->stream);
+}
+
 /// Base is e. out[i]=e^in[i]
 template <>
 void Exp<float, lang::Cuda>(const Tensor& in, Tensor* out, Context* ctx) {
@@ -656,6 +665,20 @@ void ReLU<float, lang::Cuda>(const Tensor& in, Tensor* out, Context* ctx) {
     cuda::relu(num, inPtr, outPtr, ctx->stream);
   } else {  // else we transform in to out to store first
     Transform<float, lang::Cuda>(in, out, ctx);
+    cuda::relu(num, outPtr, outPtr, ctx->stream);
+  }
+}
+
+template <>
+void ReLU<half_float::half, lang::Cuda>(const Tensor& in, Tensor* out, Context* ctx) {
+  const __half* inPtr = static_cast<const __half*>(in.block()->data());
+  __half* outPtr = static_cast<__half*>(out->block()->mutable_data());
+  const size_t num = in.Size();
+
+  if (in.stride() == out->stride()) {
+    cuda::relu(num, inPtr, outPtr, ctx->stream);
+  } else {  // else we transform in to out to store first
+    Transform<half_float::half, lang::Cuda>(in, out, ctx);
     cuda::relu(num, outPtr, outPtr, ctx->stream);
   }
 }
@@ -1030,6 +1053,36 @@ void GEMV<float, lang::Cuda>(const float alpha, const Tensor& A,
                              1, &beta, outPtr, 1));
 }
 
+template <>
+void GEMM<half_float::half, lang::Cuda>(const half_float::half alpha, const Tensor& A,
+                             const Tensor& B, const half_float::half beta, Tensor* C,
+                             Context* ctx) {
+  auto transA = A.transpose();
+  auto transa = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
+  auto transB = B.transpose();
+  auto transb = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
+  const size_t nrowA = A.shape()[0];
+  const size_t ncolA = A.shape()[1];
+  const size_t ncolB = B.shape()[1];
+  int lda = transA ? nrowA : ncolA;
+  int ldb = transB ? ncolA : ncolB;
+  int ldc = ncolB;
+  const __half* APtr = static_cast<const __half*>(A.block()->data());
+  const __half* BPtr = static_cast<const __half*>(B.block()->data());
+  __half* CPtr = static_cast<__half*>(C->block()->mutable_data());
+  const __half* alphaPtr = static_cast<const __half*>(static_cast<const void*>(&alpha));
+  const __half* betaPtr = static_cast<const __half*>(static_cast<const void*>(&beta));
+  auto handle = ctx->cublas_handle;  // TODO(wangwei) set cudastream
+  CUBLAS_CHECK(cublasHgemm(handle, transb, transa, ncolB, nrowA, ncolA, alphaPtr,
+                           BPtr, ldb, APtr, lda, betaPtr, CPtr, ldc));
+}
+
+template <>
+void Dot<half_float::half, lang::Cuda>(const Tensor& in1, const Tensor& in2, Tensor* out,
+                            Context* ctx) {
+  GEMM<half_float::half, lang::Cuda>(static_cast<half_float::half>(1.0f), in1, in2, static_cast<half_float::half>(0.0f), out, ctx);
+}
+
 // http://docs.nvidia.com/cuda/cublas/#cublas-lt-t-gt-gemm
 template <>
 void GEMM<float, lang::Cuda>(const float alpha, const Tensor& A,
@@ -1101,6 +1154,39 @@ void GEMMBatched<float, lang::Cuda>(const float alpha, const Tensor& A,
 }
 
 template <>
+void SoftMax<half_float::half, lang::Cuda>(const Tensor& in, Tensor* out, Context* ctx) {
+  cudnnSoftmaxAlgorithm_t algorithm = CUDNN_SOFTMAX_ACCURATE;
+  cudnnSoftmaxMode_t mode = CUDNN_SOFTMAX_MODE_INSTANCE;
+
+  /*
+   * tensor tmp is for generating cudnn descriptor
+   *   as for cudnn softmax, it required shape of {N, C, 1, 1}
+   *   while helper func `generate_shape_cuda` generate shape of {1, 1, N, C}
+   *   Thus this part serve similar purpose as `generate_shape_cuda` but in
+   * reverse manner
+   */
+  CHECK_LE(in.shape().size(), 5)
+      << "Dimensions (shape) beyond 5 are currently not supported";
+  auto tmp = in;
+  while (tmp.shape().size() < 4) {
+    auto s = tmp.shape();
+    s.push_back(1);
+    tmp.Reshape(s);
+  }
+
+  const __half* inPtr = static_cast<const __half*>(in.block()->data());
+  __half* outPtr = static_cast<__half*>(out->block()->mutable_data());
+
+  __half alpha = 1.0;
+  __half beta = 0.0;
+
+  check_cudnn(cudnnSoftmaxForward(ctx->cudnn_handle, algorithm, mode,
+                                  static_cast<void*>(&alpha), generate_tensor_nd_desc(tmp),
+                                  inPtr, static_cast<void*>(&beta),
+                                  generate_tensor_nd_desc(tmp), outPtr));
+}
+
+template <>
 void SoftMax<float, lang::Cuda>(const Tensor& in, Tensor* out, Context* ctx) {
   cudnnSoftmaxAlgorithm_t algorithm = CUDNN_SOFTMAX_ACCURATE;
   cudnnSoftmaxMode_t mode = CUDNN_SOFTMAX_MODE_INSTANCE;
@@ -1166,6 +1252,19 @@ void SoftMaxBackward<float, lang::Cuda>(const Tensor& in, Tensor* out,
       ctx->cudnn_handle, algorithm, mode, (void*)(&alpha),
       generate_tensor_nd_desc(tmp), fdoutPtr, generate_tensor_nd_desc(tmp),
       inPtr, (void*)(&beta), generate_tensor_nd_desc(tmp), outPtr));
+}
+
+template <>
+void ComputeCrossEntropy<half_float::half, lang::Cuda>(bool int_target,
+                                            const size_t batchsize,
+                                            const size_t dim, const Block* p,
+                                            const Block* t, Block* loss,
+                                            Context* ctx) {
+  const __half* pPtr = static_cast<const __half*>(p->data());
+  const int* tPtr = static_cast<const int*>(t->data());
+  __half* lossPtr = static_cast<__half*>(loss->mutable_data());
+  cuda::ComputeCrossEntropy(int_target, batchsize, dim, pPtr, tPtr, lossPtr,
+                            ctx->stream);
 }
 
 template <>

@@ -268,6 +268,9 @@ if __name__ == '__main__':
     parser.add_argument('data',
                         choices=['cifar10', 'cifar100', 'mnist'],
                         default='mnist')
+    parser.add_argument('-p',
+                        choices=['float32','float16'],
+                        default='float32')
     parser.add_argument('-m',
                         '--max-epoch',
                         default=10,

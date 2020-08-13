@@ -1009,6 +1009,8 @@ class TestAPI(unittest.TestCase):
         linear = layer.Linear(4)
         y=linear(x)
         print(y)
+        print(linear.W)
+        print(linear.b)
         print(y.shape)
         assert y.dtype == x.dtype
 
@@ -1018,6 +1020,18 @@ class TestAPI(unittest.TestCase):
         x.gaussian(0,1)
         y=tensor.Tensor((2,3),dev,tensor.float16)
         y.gaussian(0,1)
+        print(x)
+        print(y)
+        sce = layer.SoftMaxCrossEntropy()
+        loss=sce(x,y)
+        print(loss)
+        print(loss.shape)
+        assert loss.dtype == x.dtype
+
+        x=x.as_type(tensor.float32)
+        y=y.as_type(tensor.float32)
+        print(x)
+        print(y)
         sce = layer.SoftMaxCrossEntropy()
         loss=sce(x,y)
         print(loss)
@@ -1028,6 +1042,7 @@ class TestAPI(unittest.TestCase):
     def test_f16_relu_layer(self, dev=gpu_dev):
         x=tensor.Tensor((2,3),dev,tensor.float16)
         x.gaussian(0,1)
+        print(x)
         relu = layer.ReLU()
         y=relu(x)
         print(y)

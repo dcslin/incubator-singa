@@ -188,6 +188,18 @@ __global__ void KernelClamp(const size_t n, const float low, const float high,
   }
 }
 
+__global__ void KernelRelu(const size_t n, const __half *in, __half *out) {
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n;
+       i += blockDim.x * gridDim.x) {
+    if(__hgt(in[i], 0.0f)){
+      out[i] = in[i];
+    }
+    else{
+      out[i] = 0.0f;
+    }
+  }
+}
+
 __global__ void KernelRelu(const size_t n, const float *in, float *out) {
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n;
        i += blockDim.x * gridDim.x) {
@@ -277,6 +289,14 @@ __global__ void KernelMult(const size_t n, const float *in1, const float *in2,
 
 __global__ void KernelMult(const size_t n, const float *in, const float x,
                            float *out) {
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n;
+       i += blockDim.x * gridDim.x) {
+    out[i] = in[i] * x;
+  }
+}
+
+__global__ void KernelMult(const size_t n, const __half *in, const __half x,
+                           __half *out) {
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n;
        i += blockDim.x * gridDim.x) {
     out[i] = in[i] * x;
@@ -398,6 +418,31 @@ __global__ void KernelRowMax(const size_t nrow, const size_t ncol, const float *
     outPtr[idx] = maxval;
   }
 }
+
+__global__ void KernelComputeCrossEntropy(const bool int_target, const size_t batchsize,
+                                          const size_t dim, const __half *p,
+                                          const int *t, __half *loss) {
+  size_t sample = blockIdx.x * blockDim.x + threadIdx.x;
+  size_t num_threads = blockDim.x * gridDim.x;
+  if (int_target) {
+    for (; sample < batchsize; sample += num_threads) {
+      __half prob_of_truth = p[sample * dim + t[sample]];
+      loss[sample] = -std::log(max(prob_of_truth, FLT_MIN));
+    }
+  } else {
+    for (; sample < batchsize; sample += num_threads) {
+      __half sum = 0.f;
+      for (size_t j = 0; j < dim; j++) {
+        sum += t[sample * dim + j];
+      }
+      loss[sample] = 0;
+      for (size_t j = 0, offset = sample * dim; j < dim; j++, offset++) {
+        loss[sample] -= __int2half_rn(t[offset]) / sum * hlog(max(p[offset], FLT_MIN));
+      }
+    }
+  }
+}
+
 __global__ void KernelComputeCrossEntropy(const bool int_target, const size_t batchsize,
                                           const size_t dim, const float *p,
                                           const int *t, float *loss) {
@@ -613,6 +658,11 @@ void square(const size_t n, const float *in, float *out, cudaStream_t s) {
 void relu(const size_t n, const float *in, float *out, cudaStream_t s) {
   KernelRelu <<<ceil(n / CU1DBLOCKF), CU1DBLOCKF, 0, s>>> (n, in, out);
 }
+
+void relu(const size_t n, const __half *in, __half *out, cudaStream_t s) {
+  KernelRelu <<<ceil(n / CU1DBLOCKF), CU1DBLOCKF, 0, s>>> (n, in, out);
+}
+
 void sigmoid(const size_t n, const float *in, float *out, cudaStream_t s) {
   KernelSigmoid <<<ceil(n / CU1DBLOCKF), CU1DBLOCKF, 0, s>>> (n, in, out);
 }
@@ -645,6 +695,11 @@ void broadcast_to(const size_t n, size_t nDim,const float *in,const float* shape
 }
 
 void mult(const size_t n, const float *in, const float x, float *out,
+          cudaStream_t s) {
+  KernelMult <<<ceil(n / CU1DBLOCKF), CU1DBLOCKF, 0, s>>> (n, in, x, out);
+}
+
+void mult(const size_t n, const __half *in, const __half x, __half *out,
           cudaStream_t s) {
   KernelMult <<<ceil(n / CU1DBLOCKF), CU1DBLOCKF, 0, s>>> (n, in, x, out);
 }
@@ -737,6 +792,12 @@ void sum(const size_t n, const float *in, float *out, cudaStream_t s) {
   KernelSum <<<num_blocks, threads_per_block>>> (n, in, out);
 }
 */
+
+void ComputeCrossEntropy(const bool int_target, size_t batchsize, const size_t dim, const __half *p,
+                         const int *t, __half *loss, cudaStream_t stream) {
+  KernelComputeCrossEntropy <<<ceil(batchsize / CU1DBLOCKF), CU1DBLOCKF, 0, stream>>>
+      (int_target, batchsize, dim, p, t, loss);
+}
 
 void ComputeCrossEntropy(const bool int_target, size_t batchsize, const size_t dim, const float *p,
                          const int *t, float *loss, cudaStream_t stream) {
