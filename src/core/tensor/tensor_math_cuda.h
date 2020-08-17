@@ -907,6 +907,14 @@ void Uniform<float, lang::Cuda>(const float low, const float high, Tensor* out,
   cuda::add(num, outPtr, low, outPtr, ctx->stream);
 }
 
+template <>
+void Uniform<half_float::half, lang::Cuda>(const half_float::half low, const half_float::half high, Tensor* out,
+                                Context* ctx) {
+  Tensor tmp(out->shape(), out->device(), kFloat32);
+  Uniform<float, lang::Cuda>(static_cast<float>(low), static_cast<float>(high), &tmp, ctx);
+  CastCopy<float, half_float::half, lang::Cuda>(&tmp, out, ctx);
+}
+
 // The random generator should be extracted from ctx.
 // If DType is not float, then convert the mean and delta to DType
 template <>
@@ -1080,7 +1088,12 @@ void GEMM<half_float::half, lang::Cuda>(const half_float::half alpha, const Tens
 template <>
 void Dot<half_float::half, lang::Cuda>(const Tensor& in1, const Tensor& in2, Tensor* out,
                             Context* ctx) {
-  GEMM<half_float::half, lang::Cuda>(static_cast<half_float::half>(1.0f), in1, in2, static_cast<half_float::half>(0.0f), out, ctx);
+  auto _in1 = in1.AsType(kFloat32);
+  auto _in2 = in2.AsType(kFloat32);
+  Tensor _out = Tensor(out->shape(), out->device(), kFloat32);
+  Dot<float, lang::Cuda>(_in1, _in2, &_out, ctx);
+  CastCopy<float, half_float::half, lang::Cuda>(&_out, out, ctx);
+  // std::cout << "Dot<>" <<"_in1"<< _in1 << "_in2" <<_in2 << "out" << *out <<std::endl;
 }
 
 // http://docs.nvidia.com/cuda/cublas/#cublas-lt-t-gt-gemm
@@ -1088,6 +1101,7 @@ template <>
 void GEMM<float, lang::Cuda>(const float alpha, const Tensor& A,
                              const Tensor& B, const float beta, Tensor* C,
                              Context* ctx) {
+  /* A 2d, B 2d*/
   auto transA = A.transpose();
   auto transa = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   auto transB = B.transpose();
@@ -1177,8 +1191,8 @@ void SoftMax<half_float::half, lang::Cuda>(const Tensor& in, Tensor* out, Contex
   const __half* inPtr = static_cast<const __half*>(in.block()->data());
   __half* outPtr = static_cast<__half*>(out->block()->mutable_data());
 
-  __half alpha = 1.0;
-  __half beta = 0.0;
+  float alpha = 1.0f;
+  float beta = 0.0f;
 
   check_cudnn(cudnnSoftmaxForward(ctx->cudnn_handle, algorithm, mode,
                                   static_cast<void*>(&alpha), generate_tensor_nd_desc(tmp),
@@ -1254,41 +1268,48 @@ void SoftMaxBackward<float, lang::Cuda>(const Tensor& in, Tensor* out,
       inPtr, (void*)(&beta), generate_tensor_nd_desc(tmp), outPtr));
 }
 
-template <>
-void ComputeCrossEntropy<half_float::half, lang::Cuda>(bool int_target,
-                                            const size_t batchsize,
-                                            const size_t dim, const Block* p,
-                                            const Block* t, Block* loss,
-                                            Context* ctx) {
-  const __half* pPtr = static_cast<const __half*>(p->data());
-  const int* tPtr = static_cast<const int*>(t->data());
-  __half* lossPtr = static_cast<__half*>(loss->mutable_data());
-  cuda::ComputeCrossEntropy(int_target, batchsize, dim, pPtr, tPtr, lossPtr,
-                            ctx->stream);
-}
 
 template <>
 void ComputeCrossEntropy<float, lang::Cuda>(bool int_target,
                                             const size_t batchsize,
-                                            const size_t dim, const Block* p,
-                                            const Block* t, Block* loss,
+                                            const size_t dim, const Tensor& p,
+                                            const Tensor& t, Tensor* loss,
                                             Context* ctx) {
-  const float* pPtr = static_cast<const float*>(p->data());
-  const int* tPtr = static_cast<const int*>(t->data());
-  float* lossPtr = static_cast<float*>(loss->mutable_data());
+  const float* pPtr = static_cast<const float*>(p.block()->data());
+  const int* tPtr = static_cast<const int*>(t.block()->data());
+  float* lossPtr = static_cast<float*>(loss->block()->mutable_data());
   cuda::ComputeCrossEntropy(int_target, batchsize, dim, pPtr, tPtr, lossPtr,
                             ctx->stream);
 }
 template <>
+void ComputeCrossEntropy<half_float::half, lang::Cuda>(bool int_target,
+                                            const size_t batchsize,
+                                            const size_t dim, const Tensor& p,
+                                            const Tensor& t, Tensor* loss,
+                                            Context* ctx) {
+  // todo: int16_t for target
+  // todo: value error
+  // const __half* pPtr = static_cast<const __half*>(p.block()->data());
+  // const __half* tPtr = static_cast<const __half*>(t.block()->data());
+  // __half* lossPtr = static_cast<__half*>(loss->block()->mutable_data());
+  // cuda::ComputeCrossEntropy(int_target, batchsize, dim, pPtr, tPtr, lossPtr,
+  //                           ctx->stream);
+  auto _p = p.AsType(kFloat32);
+  auto _t = t.AsType(kFloat32);
+  Tensor _loss = Tensor(loss->shape(), loss->device(), kFloat32);
+  ComputeCrossEntropy<float, lang::Cuda>(int_target, batchsize, dim, _p, _t, &_loss, ctx);
+  CastCopy<float, half_float::half, lang::Cuda>(&_loss, loss, ctx);
+}
+template <>
 void SoftmaxCrossEntropyBwd<float, lang::Cuda>(bool int_target,
                                                const size_t batchsize,
-                                               const size_t dim, const Block* p,
-                                               const Block* t, Block* grad,
+                                               const size_t dim, const Tensor& p,
+                                               const Tensor& t, Tensor* grad,
                                                Context* ctx) {
-  CHECK_EQ(p, grad) << "Use the same pointer to optimize performance";
-  const float* pPtr = static_cast<const float*>(p->data());
-  const int* tPtr = static_cast<const int*>(t->data());
-  float* gradPtr = static_cast<float*>(grad->mutable_data());
+  CHECK_EQ(p.block(), grad->block()) << "Use the same pointer to optimize performance";
+  const float* pPtr = static_cast<const float*>(p.block()->data());
+  const int* tPtr = static_cast<const int*>(t.block()->data());
+  float* gradPtr = static_cast<float*>(grad->block()->mutable_data());
   cuda::SoftmaxCrossEntropyBwd(int_target, batchsize, dim, pPtr, tPtr, gradPtr,
                                ctx->stream);
 }

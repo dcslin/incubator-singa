@@ -421,23 +421,33 @@ __global__ void KernelRowMax(const size_t nrow, const size_t ncol, const float *
 
 __global__ void KernelComputeCrossEntropy(const bool int_target, const size_t batchsize,
                                           const size_t dim, const __half *p,
-                                          const int *t, __half *loss) {
+                                          const __half *t, __half *loss) {
   size_t sample = blockIdx.x * blockDim.x + threadIdx.x;
   size_t num_threads = blockDim.x * gridDim.x;
+  __half __HALF_EPS  = __float2half(0.0000001);
   if (int_target) {
     for (; sample < batchsize; sample += num_threads) {
-      __half prob_of_truth = p[sample * dim + t[sample]];
-      loss[sample] = -std::log(max(prob_of_truth, FLT_MIN));
+      __half prob_of_truth = p[sample * dim + __half2int_rn(t[sample])];
+      if (prob_of_truth > __HALF_EPS){
+        loss[sample] = - hlog(prob_of_truth);
+      } else {
+        loss[sample] = - hlog(__HALF_EPS);
+      }
     }
   } else {
     for (; sample < batchsize; sample += num_threads) {
-      __half sum = 0.f;
+      __half sum = __float2half(0.0f);
       for (size_t j = 0; j < dim; j++) {
-        sum += t[sample * dim + j];
+        sum = __hadd(sum, t[sample * dim + j]);
       }
-      loss[sample] = 0;
+      // printf("fp16 sum %f\n", sum);
+      loss[sample] = __float2half(0.0f);
       for (size_t j = 0, offset = sample * dim; j < dim; j++, offset++) {
-        loss[sample] -= __int2half_rn(t[offset]) / sum * hlog(max(p[offset], FLT_MIN));
+        if (p[offset] > __HALF_EPS){
+          loss[sample] = __hsub(loss[sample], __hdiv(t[offset], __hmul(sum, hlog(p[offset]))));
+        }else{
+          loss[sample] = __hsub(loss[sample], __hdiv(t[offset], __hmul(sum, hlog(__HALF_EPS))));
+        }
       }
     }
   }
@@ -459,6 +469,7 @@ __global__ void KernelComputeCrossEntropy(const bool int_target, const size_t ba
       for (size_t j = 0; j < dim; j++) {
         sum += t[sample * dim + j];
       }
+      // printf("fp32 sum %f\n", sum);
       loss[sample] = 0;
       for (size_t j = 0, offset = sample * dim; j < dim; j++, offset++) {
         loss[sample] -= t[offset] / sum * std::log(max(p[offset], FLT_MIN));
@@ -794,7 +805,7 @@ void sum(const size_t n, const float *in, float *out, cudaStream_t s) {
 */
 
 void ComputeCrossEntropy(const bool int_target, size_t batchsize, const size_t dim, const __half *p,
-                         const int *t, __half *loss, cudaStream_t stream) {
+                         const __half *t, __half *loss, cudaStream_t stream) {
   KernelComputeCrossEntropy <<<ceil(batchsize / CU1DBLOCKF), CU1DBLOCKF, 0, stream>>>
       (int_target, batchsize, dim, p, t, loss);
 }

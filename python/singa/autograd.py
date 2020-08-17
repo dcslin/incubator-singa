@@ -1313,7 +1313,9 @@ class SoftMaxCrossEntropy(Operator):
         self.t = t.data
 
     def forward(self, x):
+        # print("softmax in shape", x.shape()) # 2,3
         self.p = singa.SoftMax(x)
+        # print("cross in shape", self.p.shape(), self.t.shape()) #2,3 2,3
         ret = singa.CrossEntropyFwd(self.p, self.t)
         loss = singa.SumAll(ret)
         loss /= x.shape()[0]

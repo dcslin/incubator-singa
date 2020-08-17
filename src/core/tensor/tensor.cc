@@ -197,12 +197,12 @@ Tensor Resize(const Tensor &in, const Shape &shape) {
   } while (0)
 
 // return new tensor
-Tensor Tensor::AsType(const DataType type) {
+Tensor Tensor::AsType(const DataType type) const {
   CHECK(block() && block()->initialized() == true)
       << "the data of the tensor needs be initialized before casting to "
          "another type";
   if (data_type_ != type) {
-    Tensor &thisRef = *this;
+    const Tensor &thisRef = *this;
     Tensor ret(shape_, device_, type);
     TYPE_TYPE_LANG_SWITCH(
         data_type_, LDType, type, RDType, device_->lang(), Lang, {
@@ -842,6 +842,21 @@ void Tensor::GetValue(SType *value, const size_t num) const {
 }
 template void Tensor::GetValue<float>(float *value, const size_t num) const;
 template void Tensor::GetValue<int>(int *value, const size_t num) const;
+
+std::ostream& operator<<(std::ostream& os, Tensor& out) {
+  auto dev = out.device();
+  out.ToHost();
+  auto len=out.size();
+  TYPE_SWITCH(out.data_type(), DType, { 
+    vector<DType> values(len, static_cast<DType>(0.0f));
+    out.get_value<DType>(values.data(), len);
+    for (int i=0;i<len;i++){
+      os << values[i] << ",";
+    }
+  });
+  out.ToDevice(dev);
+  return os;
+}
 
 #define EltwiseUnaryTensorFn(fn, t, ret)                               \
   do {                                                                 \
@@ -1676,13 +1691,12 @@ void ComputeCrossEntropy(const Tensor &p, const Tensor &t, Tensor *loss) {
   if (p.nDim() == 2u) batchsize = p.shape(0);
   size_t dim = p.Size() / batchsize;
   TYPE_LANG_SWITCH(p.data_type(), DType, p.device()->lang(), Lang, {
-    Tensor &lossRef = *loss;
     p.device()->Exec(
-        [batchsize, dim, t, p, lossRef](Context *ctx) mutable {
+        [batchsize, dim, t, p, loss](Context *ctx) mutable {
           bool int_target = t.Size() == batchsize;
           ComputeCrossEntropy<DType, Lang>(int_target, batchsize, dim,
-                                           p.block(), t.block(),
-                                           lossRef.block(), ctx);
+                                           p, t,
+                                           loss, ctx);
         },
         {p.block(), t.block()}, {loss->block()}, "ComputeCrossEntropy");
   });
@@ -1698,11 +1712,11 @@ void SoftmaxCrossEntropyBwd(const Tensor &t, Tensor *p) {
     Tensor &pRef = *p;
     Tensor pFake(*p);  // just add a ref count
     p->device()->Exec(
-        [batchsize, dim, t, pRef, pFake](Context *ctx) mutable {
+        [batchsize, dim, t, pRef, pFake, p](Context *ctx) mutable {
           bool int_target = t.Size() == batchsize;
           SoftmaxCrossEntropyBwd<DType, Lang>(int_target, batchsize, dim,
-                                              pRef.block(), t.block(),
-                                              pRef.block(), ctx);
+                                              pRef, t,
+                                              p, ctx);
         },
         {p->block(), t.block()}, {p->block()}, "SoftmaxCrossEntropyBackward");
   });

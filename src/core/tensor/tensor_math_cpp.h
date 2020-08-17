@@ -1052,12 +1052,12 @@ void GEMV<float, lang::Cpp>(const float alpha, const Tensor &A, const Tensor &v,
 template <>
 void ComputeCrossEntropy<float, lang::Cpp>(bool int_target,
                                            const size_t batchsize,
-                                           const size_t dim, const Block *p,
-                                           const Block *t, Block *loss,
+                                           const size_t dim, const Tensor& p,
+                                           const Tensor& t, Tensor *loss,
                                            Context *ctx) {
-  const float *pPtr = static_cast<const float *>(p->data());
-  const int *tPtr = static_cast<const int *>(t->data());
-  float *lossPtr = static_cast<float *>(loss->mutable_data());
+  const float *pPtr = static_cast<const float *>(p.block()->data());
+  const int *tPtr = static_cast<const int *>(t.block()->data());
+  float *lossPtr = static_cast<float *>(loss->block()->mutable_data());
   if (int_target) {
     for (size_t i = 0; i < batchsize; i++) {
       int truth_idx = tPtr[i];
@@ -1084,13 +1084,13 @@ void ComputeCrossEntropy<float, lang::Cpp>(bool int_target,
 template <>
 void SoftmaxCrossEntropyBwd<float, lang::Cpp>(bool int_target,
                                               const size_t batchsize,
-                                              const size_t dim, const Block *p,
-                                              const Block *t, Block *grad,
+                                              const size_t dim, const Tensor &p,
+                                              const Tensor &t, Tensor *grad,
                                               Context *ctx) {
-  CHECK_EQ(p, grad) << "Use the same pointer to optimize performance";
+  CHECK_EQ(p.block(), grad->block()) << "Use the same pointer to optimize performance";
   // const float* pPtr = static_cast<const float*>(p->data());
-  const int *tPtr = static_cast<const int *>(t->data());
-  float *gradPtr = static_cast<float *>(grad->mutable_data());
+  const int *tPtr = static_cast<const int *>(t.block()->data());
+  float *gradPtr = static_cast<float *>(grad->block()->mutable_data());
 
   if (int_target) {
     for (size_t i = 0; i < batchsize; i++) {

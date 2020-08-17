@@ -144,6 +144,8 @@ class Tensor {
   template <typename SType>
   void get_value(SType *value, const size_t num) const;
 
+  friend std::ostream& operator<<(std::ostream& os, Tensor& out);
+
   /// Serialize data, shape and transpose to protobuf object.
   void ToProto(singa::TensorProto *proto) const;
 
@@ -170,6 +172,10 @@ class Tensor {
   /// memory with 'offset' (elements).
   template <typename SType>
   void CopyDataFromHostPtr(const SType *src, const size_t num,
+                           const size_t offset = 0) const;
+
+  template <typename SType>
+  void CopyDataToHostPtr(SType *src, const size_t num,
                            const size_t offset = 0) const;
 
   /// Copy data from another Tensor which may be on a diff device.
@@ -259,7 +265,7 @@ class Tensor {
   Tensor &ResetLike(const Tensor &t);
 
   /// Reset the data type, it would reallocate block if type changes.
-  Tensor AsType(const DataType type);
+  Tensor AsType(const DataType type) const;
 
   /// Reset the device.
   /// If the target device is a diff device, then do deep data copy.

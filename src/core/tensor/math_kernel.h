@@ -143,7 +143,7 @@ void div(const size_t n, const float *in1, const float *in2, float *out,
 // void sum(const size_t n, const float *in, float *out, cudaStream_t s);
 
 void ComputeCrossEntropy(bool int_target, const size_t batchsize,
-                         const size_t dim, const __half *p, const int *t,
+                         const size_t dim, const __half *p, const __half *t,
                          __half *loss, cudaStream_t stream);
 void ComputeCrossEntropy(bool int_target, const size_t batchsize,
                          const size_t dim, const float *p, const int *t,

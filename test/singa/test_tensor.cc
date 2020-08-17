@@ -18,6 +18,9 @@
 
 #include "gtest/gtest.h"
 #include "singa/core/tensor.h"
+#include "singa/core/common.h"
+#include "../../src/core/tensor/tensor_math.h"
+#include "../../src/core/tensor/tensor_math_cuda.h"
 using singa::Device;
 using singa::Shape;
 using singa::Tensor;
@@ -83,6 +86,216 @@ TEST(TensorClass, GetValueF16Cpu) {
 }
 
 #ifdef USE_CUDA
+TEST(TensorClass, GEMMCuda){
+  auto cuda = std::make_shared<singa::CudaGPU>();
+  auto cpu = std::make_shared<singa::CppCPU>();
+
+  auto dev = cuda;
+  // auto dtype = singa::kFloat16;
+  // typedef half_float::half DType;
+  auto dtype = singa::kFloat32;
+  typedef float DType;
+  typedef singa::lang::Cuda Lang;
+
+  Tensor a({2,3},dev,dtype);
+  Tensor b({3,2},dev,dtype);
+  Tensor out({2,2},dev,dtype);
+  a.SetValue(0.111111f);
+  b.SetValue(0.333333f);
+  out.SetValue(1.1f);
+// void GEMM(const DType alpha, const Tensor &A, const Tensor &B, const DType beta, Tensor *C, Context *ctx) {
+  // alpha*a*b + beta*c
+  singa::GEMM<DType, Lang>(static_cast<DType>(1.0f),a,b,static_cast<DType>(0.0f),&out,dev->context(0));
+
+  out.ToDevice(cpu);
+  // auto dptr1 = static_cast<const half_float::half*>(out.block()->data());
+  auto dptr1 = static_cast<const DType*>(out.block()->data());
+  for(int i=0;i<out.size();i++){
+    std::cout<<dptr1[i]<<std::endl;
+  }
+}
+
+TEST(TensorClass, AsTypeCuda){
+  auto cuda = std::make_shared<singa::CudaGPU>();
+  auto cpu = std::make_shared<singa::CppCPU>();
+  auto dev = cuda;
+  auto dtype = singa::kFloat16;
+  typedef half_float::half DType;
+  // auto dtype = singa::kFloat32;
+  // typedef float DType;
+  typedef singa::lang::Cuda Lang;
+  Tensor a({2,3},dev,dtype);
+  a.SetValue(2.2222f);
+  // printt(a);
+  std::cout << "a "<< a;
+}
+TEST(TensorClass, UniformFP16Cuda){
+  using singa::Context;
+  using singa::CudaGPU;
+  using singa::CppCPU;
+  using singa::kFloat32;
+  using singa::kFloat16;
+  using namespace singa::lang;
+  using singa::CrossEntropyFwd;
+  using half_float::half;
+  using namespace half_float::literal;
+
+  auto cuda = std::make_shared<CudaGPU>();
+  auto cpu = std::make_shared<CppCPU>();
+  auto dev = cuda;
+
+  auto dtype = kFloat16;
+  typedef half DType;
+  // auto dtype = singa::kFloat32;
+  // typedef float DType;
+
+  typedef Cuda Lang;
+  Tensor p({2,3},dev,dtype);
+
+  Uniform(0.0f,1.0f,&p);
+  std::cout<<p;
+}
+TEST(TensorClass, CrossEntropyBwdFP16Cuda){
+  using singa::Context;
+  using singa::CudaGPU;
+  using singa::CppCPU;
+  using singa::kFloat32;
+  using singa::kFloat16;
+  using namespace singa::lang;
+  using singa::CrossEntropyFwd;
+  using half_float::half;
+  using namespace half_float::literal;
+
+  auto cuda = std::make_shared<CudaGPU>();
+  auto cpu = std::make_shared<CppCPU>();
+  auto dev = cuda;
+
+  auto dtype = singa::kFloat32;
+
+  typedef Cuda Lang;
+  Tensor p({2,3},dev,dtype);
+  Tensor t({2,3},dev,dtype);
+
+  float pdata[] = {0.1f, 0.5f, 0.4f, 0.2f, 0.6f, 0.2f};
+  p.CopyDataFromHostPtr(pdata, p.size());
+  float tdata[] = {0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f};
+  t.CopyDataFromHostPtr(tdata, t.size());
+
+  std::cout<<"bef p \n"<<p<<"\n t \n"<<t<< "\n";
+  SoftmaxCrossEntropyBwd(t,p);
+  std::cout<<"aft p \n"<<p<<"\n t \n"<<t<< "\n";
+
+}
+
+TEST(TensorClass, CrossEntropyFwdFP16Cuda){
+  using singa::Context;
+  using singa::CudaGPU;
+  using singa::CppCPU;
+  using singa::kFloat32;
+  using singa::kFloat16;
+  using namespace singa::lang;
+  using singa::CrossEntropyFwd;
+  using half_float::half;
+  using namespace half_float::literal;
+
+  auto cuda = std::make_shared<CudaGPU>();
+  auto cpu = std::make_shared<CppCPU>();
+  auto dev = cuda;
+
+  // auto dtype = kFloat16;
+  auto dtype = singa::kFloat32;
+
+  typedef Cuda Lang;
+  Tensor p({2,3},dev,dtype);
+  Tensor t({2,3},dev,dtype);
+
+  float pdata[] = {0.1f, 0.5f, 0.4f, 0.2f, 0.6f, 0.2f};
+  p.CopyDataFromHostPtr(pdata, p.size());
+  float tdata[] = {0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f};
+  t.CopyDataFromHostPtr(tdata, t.size());
+
+  auto l = CrossEntropyFwd(p,t);
+  std::cout<<"fp32 p \n"<<p<<"\n t \n"<<t<< "\n l \n" << l << "\n";
+
+  p=p.AsType(kFloat16);
+  t=t.AsType(kFloat16);
+  // int_target == false
+  l = CrossEntropyFwd(p, t);
+  std::cout<<"fp16 p \n"<<p<<"\n t \n"<<t<< "\n l \n" << l << "\n";
+}
+
+TEST(TensorClass, SoftMaxFP16Cuda){
+  using singa::Context;
+  using singa::CudaGPU;
+  using singa::CppCPU;
+  using singa::kFloat32;
+  using singa::kFloat16;
+  using namespace singa::lang;
+  using singa::SoftMax;
+  using half_float::half;
+  using namespace half_float::literal;
+
+  auto cuda = std::make_shared<CudaGPU>();
+  auto cpu = std::make_shared<CppCPU>();
+  auto dev = cuda;
+
+  auto dtype = kFloat16;
+  typedef half DType;
+  // auto dtype = singa::kFloat32;
+  // typedef float DType;
+
+  typedef Cuda Lang;
+  Tensor a({2,3},dev,dtype);
+  Tensor b({2,3},dev,dtype);
+  Gaussian(0.0f,1.0f,&a);
+  b.SetValue(0.1f);
+  SoftMax<DType, Lang>(a, &b, dev->context(0));
+  std::cout<<"a\n"<<a<<"\nb\n"<<b<<std::endl;
+
+  a=a.AsType(kFloat32);
+  b=b.AsType(kFloat32);
+  b.SetValue(0.1f);
+  SoftMax<float, Lang>(a, &b, dev->context(0));
+  std::cout<<"a\n"<<a<<"\nb\n"<<b<<std::endl;
+}
+
+TEST(TensorClass, DotCuda){
+  using singa::Context;
+  using singa::CudaGPU;
+  using singa::CppCPU;
+  using singa::kFloat32;
+  using singa::kFloat16;
+  using namespace singa::lang;
+  using singa::Dot;
+  using half_float::half;
+  using namespace half_float::literal;
+
+  auto cuda = std::make_shared<CudaGPU>();
+  auto cpu = std::make_shared<CppCPU>();
+  auto dev = cuda;
+
+  auto dtype = kFloat16;
+  typedef half DType;
+  // auto dtype = singa::kFloat32;
+  // typedef float DType;
+
+  typedef Cuda Lang;
+  Tensor a({2},dev,dtype);
+  Tensor b({2},dev,dtype);
+  Tensor out({1},dev,dtype);
+
+  a.SetValue(2.22222f);
+  b.SetValue(1.0f);
+  out.SetValue(0.0f);
+  std::cout<< "a:" << a << std::endl;
+  std::cout<< "b:" << b << std::endl;
+  std::cout<< "out:" << out << std::endl;
+
+  out.device()->Exec(
+    [a, b, out](Context *ctx) mutable { Dot<DType, Lang>(a, b, &out, ctx); },
+    {a.block(), b.block()}, {out.block()});
+  std::cout<< "out:" << out;
+}
 
 TEST(TensorClass, GetValueF16Cuda) {
   using namespace half_float::literal;

@@ -1015,27 +1015,47 @@ class TestAPI(unittest.TestCase):
         assert y.dtype == x.dtype
 
     @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
+    def test_f16_softmax(self, dev=gpu_dev):
+        dtype = tensor.float32
+        x=tensor.Tensor((2,3),dev,dtype)
+        x.gaussian(0,1)
+        y = singa_api.SoftMax(x.data)
+
+        print()
+        print("-fp32 x", x)
+        print("-fp32 y", tensor.from_raw_tensor(y))
+
+        x = x.as_type(tensor.float16)
+        y = singa_api.SoftMax(x.data)
+        print("-fp16 x", x)
+        print("-fp16 y", tensor.from_raw_tensor(y))
+        pass
+
+    @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
     def test_f16_softmax_cross_entropy_layer(self, dev=gpu_dev):
         x=tensor.Tensor((2,3),dev,tensor.float16)
         x.gaussian(0,1)
         y=tensor.Tensor((2,3),dev,tensor.float16)
         y.gaussian(0,1)
-        print(x)
-        print(y)
+        print()
+        print("-f16 x",x)
+        print("-f16 y",y)
         sce = layer.SoftMaxCrossEntropy()
         loss=sce(x,y)
-        print(loss)
-        print(loss.shape)
+        print("-f16 loss",loss)
+        print("-f16 l shape",loss.shape)
         assert loss.dtype == x.dtype
 
         x=x.as_type(tensor.float32)
         y=y.as_type(tensor.float32)
-        print(x)
-        print(y)
-        sce = layer.SoftMaxCrossEntropy()
-        loss=sce(x,y)
-        print(loss)
-        print(loss.shape)
+
+        sce2 = layer.SoftMaxCrossEntropy()
+        loss=sce2(x,y)
+
+        print("-f32 x",x)
+        print("-f32 y",y)
+        print("-f32loss",loss)
+        print("-f32loss shape",loss.shape)
         assert loss.dtype == x.dtype
 
     @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
