@@ -91,12 +91,21 @@ if __name__ == "__main__":
     x = np.random.uniform(-1, 1, 400)
     y = f(x) + 2 * np.random.randn(len(x))
     # convert training data to 2d space
+
+    precision=tensor.float16
+    np_precision = np.float16
+
+    # precision=tensor.float32
+    # np_precision = np.float32
+
     label = np.asarray([5 * a + 1 > b for (a, b) in zip(x, y)]).astype(np.int32)
-    data = np.array([[a, b] for (a, b) in zip(x, y)], dtype=np.float32)
+    data = np.array([[a, b] for (a, b) in zip(x, y)], dtype=np_precision)
 
     dev = device.create_cuda_gpu_on(0)
     sgd = opt.SGD(0.05)
-    tx = tensor.Tensor((400, 2), dev, tensor.float32)
+
+
+    tx = tensor.Tensor((400, 2), dev, precision)
     ty = tensor.Tensor((400,), dev, tensor.int32)
     model = MLP(data_size=2, perceptron_size=3, num_classes=2)
 

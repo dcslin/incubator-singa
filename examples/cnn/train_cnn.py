@@ -26,6 +26,17 @@ import time
 import argparse
 from PIL import Image
 
+def get_np_dtype(precision):
+    if precision == "float16":
+        return np.float16
+    else:
+        return np.float32
+
+def get_singa_dtype(precision):
+    if precision == "float16":
+        return tensor.float16
+    else:
+        return tensor.float32
 
 # Data Augmentation
 def augmentation(x, batch_size):
@@ -101,7 +112,8 @@ def run(global_rank,
         graph,
         verbosity,
         dist_option='fp32',
-        spars=None):
+        spars=None,
+        precision='float32'):
     dev = device.create_cuda_gpu_on(local_rank)
     dev.SetRandSeed(0)
     np.random.seed(0)
@@ -115,6 +127,15 @@ def run(global_rank,
     elif data == 'mnist':
         from data import mnist
         train_x, train_y, val_x, val_y = mnist.load()
+
+    print("after load data")
+    print(type(train_x), "train_x dtype", train_x.dtype)
+
+    train_x=train_x.astype(get_np_dtype(precision))
+    val_x=val_x.astype(get_np_dtype(precision))
+
+    print("after astype data")
+    print(type(train_x), "train_x dtype", train_x.dtype)
 
     num_channels = train_x.shape[1]
     image_size = train_x.shape[2]
@@ -169,11 +190,13 @@ def run(global_rank,
     '''
 
     if model.dimension == 4:
+        print("model dim 4")
         tx = tensor.Tensor(
             (batch_size, num_channels, model.input_size, model.input_size), dev,
-            tensor.float32)
+            get_singa_dtype(precision))
     elif model.dimension == 2:
-        tx = tensor.Tensor((batch_size, data_size), dev, tensor.float32)
+        print("model dim 2")
+        tx = tensor.Tensor((batch_size, data_size), dev, get_singa_dtype(precision))
         np.reshape(train_x, (train_x.shape[0], -1))
         np.reshape(val_x, (val_x.shape[0], -1))
 
@@ -270,7 +293,8 @@ if __name__ == '__main__':
                         default='mnist')
     parser.add_argument('-p',
                         choices=['float32','float16'],
-                        default='float32')
+                        default='float32',
+                        dest='precision')
     parser.add_argument('-m',
                         '--max-epoch',
                         default=10,
@@ -313,4 +337,4 @@ if __name__ == '__main__':
 
     sgd = opt.SGD(lr=args.lr, momentum=0.9, weight_decay=1e-5)
     run(0, 1, args.device_id, args.max_epoch, args.batch_size, args.model,
-        args.data, sgd, args.graph, args.verbosity)
+        args.data, sgd, args.graph, args.verbosity, precision=args.precision)

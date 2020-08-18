@@ -151,6 +151,18 @@ class Optimizer(object):
             if var.device.id() != x_dev_id:
                 var.to_device(x_device)
         inputs[0].device.EnableGraph(flag)
+    
+    def dtype_check(self, *inputs):
+        """ check if all input have same data type.
+
+        Args:
+            *inputs: input args consisting of only PyTensors
+        """
+        x_dtype = inputs[0].dtype
+        for idx,inp in enumerate(inputs):
+            # assert inp.dtype == x_dtype, ("input %d has dtype %s != expected dtype %s" % (idx, inp.dtype, x_dtype))
+            if inp.dtype != x_dtype:
+                inp = inp.as_type(x_dtype)
 
     @deprecated(
         reason=
@@ -277,6 +289,9 @@ class SGD(Optimizer):
                                                        param_grad.shape)
         self.device_check(param_value, self.step_counter, self.lr_value,
                           self.mom_value, self.dam_value, self.decay_value)
+        self.dtype_check(param_value, self.step_counter, self.lr_value,
+                          self.mom_value, self.dam_value, self.decay_value)
+
 
         # TODO add branch operator
         # if self.decay_value != 0:

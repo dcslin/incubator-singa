@@ -621,6 +621,15 @@ void ReLUBackward<float, lang::Cuda>(const Tensor& in1, const Tensor& in2,
   const size_t num = in1.Size();
   cuda::relubackward(num, in1Ptr, in2Ptr, outPtr, ctx->stream);
 }
+template <>
+void ReLUBackward<half_float::half, lang::Cuda>(const Tensor& in1, const Tensor& in2,
+                                     Tensor* out, Context* ctx) {
+  auto _in1 = in1.AsType(kFloat32);
+  auto _in2 = in2.AsType(kFloat32);
+  auto _out = Tensor(out->shape(),out->device(),kFloat32);
+  ReLUBackward<float,lang::Cuda>(_in1,_in2,&_out,ctx);
+  CastCopy<float, half_float::half, lang::Cuda>(&_out, out, ctx);
+}
 
 /// Element-wise operation, out[i]=max(0, in[i])
 // template <>
@@ -985,6 +994,14 @@ void Axpy<float, lang::Cuda>(const float alpha, const Tensor& in, Tensor* out,
   const size_t num = in.Size();
   CUBLAS_CHECK(cublasSaxpy(handle, num, &alpha, inPtr, 1, outPtr, 1));
 }
+template <>
+void Axpy<half_float::half, lang::Cuda>(const half_float::half alpha, const Tensor& in, Tensor* out,
+                             Context* ctx) {
+  auto _in = in.AsType(kFloat32);
+  auto _out = out->AsType(kFloat32);
+  Axpy<float,lang::Cuda>(static_cast<float>(alpha),_in,&_out,ctx);
+  CastCopy<float, half_float::half, lang::Cuda>(&_out, out, ctx);
+}
 
 /// out = \sum_i in1[i] * in2[i]
 template <>
@@ -1059,6 +1076,16 @@ void GEMV<float, lang::Cuda>(const float alpha, const Tensor& A,
   else
     CUBLAS_CHECK(cublasSgemv(handle, CUBLAS_OP_N, m, n, &alpha, APtr, m, vPtr,
                              1, &beta, outPtr, 1));
+}
+template <>
+void GEMV<half_float::half, lang::Cuda>(const half_float::half alpha, const Tensor& A,
+                             const Tensor& v, const half_float::half beta, Tensor* out,
+                             Context* ctx) {
+  auto _A = A.AsType(kFloat32);
+  auto _v = v.AsType(kFloat32);
+  Tensor _out = Tensor(out->shape(), out->device(), kFloat32);
+  GEMV<float, lang::Cuda>(static_cast<float>(alpha), _A, _v, static_cast<float>(beta), &_out, ctx);
+  CastCopy<float, half_float::half, lang::Cuda>(&_out, out, ctx);
 }
 
 template <>
@@ -1295,9 +1322,9 @@ void ComputeCrossEntropy<half_float::half, lang::Cuda>(bool int_target,
   // cuda::ComputeCrossEntropy(int_target, batchsize, dim, pPtr, tPtr, lossPtr,
   //                           ctx->stream);
   auto _p = p.AsType(kFloat32);
-  auto _t = t.AsType(kFloat32);
+  // auto _t = t.AsType(kFloat32); # t type == int
   Tensor _loss = Tensor(loss->shape(), loss->device(), kFloat32);
-  ComputeCrossEntropy<float, lang::Cuda>(int_target, batchsize, dim, _p, _t, &_loss, ctx);
+  ComputeCrossEntropy<float, lang::Cuda>(int_target, batchsize, dim, _p, t, &_loss, ctx);
   CastCopy<float, half_float::half, lang::Cuda>(&_loss, loss, ctx);
 }
 template <>
@@ -1312,6 +1339,17 @@ void SoftmaxCrossEntropyBwd<float, lang::Cuda>(bool int_target,
   float* gradPtr = static_cast<float*>(grad->block()->mutable_data());
   cuda::SoftmaxCrossEntropyBwd(int_target, batchsize, dim, pPtr, tPtr, gradPtr,
                                ctx->stream);
+}
+template <>
+void SoftmaxCrossEntropyBwd<half_float::half, lang::Cuda>(bool int_target,
+                                               const size_t batchsize,
+                                               const size_t dim, const Tensor& p,
+                                               const Tensor& t, Tensor* grad,
+                                               Context* ctx) {
+  CHECK_EQ(p.block(), grad->block()) << "Use the same pointer to optimize performance";
+  auto _p = p.AsType(kFloat32);
+  SoftmaxCrossEntropyBwd<float, lang::Cuda>(int_target, batchsize, dim, _p, t, &_p, ctx);
+  CastCopy<float, half_float::half, lang::Cuda>(&_p, grad, ctx);
 }
 
 // template <>

@@ -996,7 +996,7 @@ Tensor SoftMaxBackward(const Tensor &in, int axis, const Tensor &fdout) {
 #define EltwiseBinaryTensorFn(fn, lhs, rhs, ret)                           \
   do {                                                                     \
     TYPE_LANG_SWITCH(lhs.data_type(), DType, lhs.device()->lang(), Lang, { \
-      CHECK_EQ(sizeof(DType), SizeOf(rhs.data_type()));                    \
+      CHECK_EQ(sizeof(DType), SizeOf(rhs.data_type()))<< "lhs dtype size"<<sizeof(DType)<<" rhs dtype size"<<SizeOf(rhs.data_type());                    \
       Tensor &retRef = *ret;                                               \
       ret->device()->Exec(                                                 \
           [lhs, rhs, retRef](Context *ctx) mutable {                       \
@@ -1009,41 +1009,15 @@ Tensor SoftMaxBackward(const Tensor &in, int axis, const Tensor &fdout) {
 #define GenBinaryTensorFn(op, fn)                                           \
   Tensor op(const Tensor &lhs, const Tensor &rhs) {                         \
     if (lhs.shape() != rhs.shape()) {                                       \
-      if (lhs.data_type() == kFloat32 && rhs.data_type() == kFloat32) {     \
         auto lhs_ = Broadcast(lhs, rhs.shape());                            \
         auto rhs_ = Broadcast(rhs, lhs.shape());                            \
         Tensor ret(lhs_.shape(), lhs.device(), lhs.data_type());            \
         fn(lhs_, rhs_, &ret);                                               \
         return ret;                                                         \
-      } else {                                                              \
-        /* lhs tensor and rhs tensor are not both in float, cast to float */\
-        Tensor tmp_lhs = lhs.Clone().AsType(kFloat32);                      \
-        Tensor tmp_rhs = rhs.Clone().AsType(kFloat32);                      \
-        tmp_lhs = Broadcast(tmp_lhs, tmp_rhs.shape());                      \
-        tmp_rhs = Broadcast(tmp_rhs, tmp_lhs.shape());                      \
-        Tensor ret(tmp_lhs.shape(), tmp_lhs.device(), tmp_lhs.data_type()); \
-        fn(tmp_lhs, tmp_rhs, &ret);                                         \
-        /* if lhs and rhs are both int, cast back to int */                 \
-        if (lhs.data_type() == kInt && rhs.data_type() == kInt)             \
-          return ret.Clone().AsType(kInt);                                  \
-        return ret;                                                         \
-      }                                                                     \
     } else {                                                                \
-      if (lhs.data_type() == kFloat32 && rhs.data_type() == kFloat32) {     \
         Tensor ret(lhs.shape(), lhs.device(), lhs.data_type());             \
         fn(lhs, rhs, &ret);                                                 \
         return ret;                                                         \
-      } else {                                                              \
-        /* lhs tensor and rhs tensor are not both in float, cast to float */\
-        Tensor tmp_lhs = lhs.Clone().AsType(kFloat32);                      \
-        Tensor tmp_rhs = rhs.Clone().AsType(kFloat32);                      \
-        Tensor ret(tmp_lhs.shape(), tmp_lhs.device(), tmp_lhs.data_type()); \
-        fn(tmp_lhs, tmp_rhs, &ret);                                         \
-        /* if lhs and rhs are both int, cast back to int */                 \
-        if (lhs.data_type() == kInt && rhs.data_type() == kInt)             \
-          return ret.Clone().AsType(kInt);                                  \
-        return ret;                                                         \
-      }                                                                     \
     }                                                                       \
   }                                                                         \
   void fn(const Tensor &lhs, const Tensor &rhs, Tensor *ret) {              \
@@ -1691,12 +1665,13 @@ void ComputeCrossEntropy(const Tensor &p, const Tensor &t, Tensor *loss) {
   if (p.nDim() == 2u) batchsize = p.shape(0);
   size_t dim = p.Size() / batchsize;
   TYPE_LANG_SWITCH(p.data_type(), DType, p.device()->lang(), Lang, {
+    Tensor &lossRef = *loss;
     p.device()->Exec(
-        [batchsize, dim, t, p, loss](Context *ctx) mutable {
+        [batchsize, dim, t, p, lossRef](Context *ctx) mutable {
           bool int_target = t.Size() == batchsize;
           ComputeCrossEntropy<DType, Lang>(int_target, batchsize, dim,
                                            p, t,
-                                           loss, ctx);
+                                           &lossRef, ctx);
         },
         {p.block(), t.block()}, {loss->block()}, "ComputeCrossEntropy");
   });
@@ -1716,7 +1691,7 @@ void SoftmaxCrossEntropyBwd(const Tensor &t, Tensor *p) {
           bool int_target = t.Size() == batchsize;
           SoftmaxCrossEntropyBwd<DType, Lang>(int_target, batchsize, dim,
                                               pRef, t,
-                                              p, ctx);
+                                              &pRef, ctx);
         },
         {p->block(), t.block()}, {p->block()}, "SoftmaxCrossEntropyBackward");
   });

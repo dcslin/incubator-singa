@@ -24,7 +24,7 @@ import math
 import numpy as np
 
 from singa import singa_wrap as singa_api
-from singa import tensor, layer
+from singa import tensor, layer, autograd
 from cuda_helper import gpu_dev, cpu_dev
 
 
@@ -1030,6 +1030,19 @@ class TestAPI(unittest.TestCase):
         print("-fp16 x", x)
         print("-fp16 y", tensor.from_raw_tensor(y))
         pass
+
+    def test_f16_softmax_crossentropy_bwd(self,dev=gpu_dev):
+        # p_data = np.array([[0.23,0.43,0.14],[0.23,0.43,0.14]]).astype(np.float32)
+        p_data = np.array([[1,2,-1],[1,2,-1]]).astype(np.float32)
+        # t_data = np.array([[0,1,0],[0,1,0]]).astype(np.int32)
+        t_data = np.array([1,1]).astype(np.int32)
+        p=tensor.Tensor(data=p_data,device=gpu_dev)
+        t=tensor.Tensor(data=t_data,device=gpu_dev)
+        p=p.as_type(tensor.float16)
+        loss = autograd.softmax_cross_entropy(p, t)
+        print(loss)
+        dp = loss.creator.backward()
+        print(tensor.from_raw_tensor(dp))
 
     @unittest.skipIf(not singa_api.USE_CUDA, 'CUDA is not enabled')
     def test_f16_softmax_cross_entropy_layer(self, dev=gpu_dev):

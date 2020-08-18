@@ -21,9 +21,12 @@ from singa import tensor
 from singa.tensor import Tensor
 from singa import autograd
 from singa import opt
+from singa import device
 import numpy as np
 
 if __name__ == "__main__":
+
+    np.random.seed(0)
 
     autograd.training = True
 
@@ -61,30 +64,69 @@ if __name__ == "__main__":
     label = to_categorical(label, 2).astype(np.float32)
     print("train_data_shape:", data.shape)
     print("train_label_shape:", label.shape)
+    # print(data[:2])
+    # print(label[:2])
 
-    inputs = Tensor(data=data)
-    target = Tensor(data=label)
+    precision=tensor.float16
+    np_precision = np.float16
 
-    w0 = Tensor(shape=(2, 3), requires_grad=True, stores_grad=True)
-    w0.gaussian(0.0, 0.1)
-    b0 = Tensor(shape=(3,), requires_grad=True, stores_grad=True)
+    # precision=tensor.float32
+    # np_precision = np.float32
+
+    dev = device.create_cuda_gpu()
+
+    inputs = Tensor(data=data,device=dev)
+    target = Tensor(data=label,device=dev)
+
+    inputs = inputs.as_type(precision)
+    target = target.as_type(tensor.int32)
+
+    assert target.dtype == tensor.int32
+    print(inputs.dtype)
+    print(target.dtype)
+
+    w0_np = np.random.normal(0, 0.1, (2,3)).astype(np_precision)
+    w0 = Tensor(data=w0_np,device=dev, dtype=precision, requires_grad=True, stores_grad=True)
+    print("w0:",np.linalg.norm(tensor.to_numpy(w0)))
+    # w0.gaussian(0.0, 0.1)
+    b0 = Tensor(shape=(3,),device=dev, dtype=precision, requires_grad=True, stores_grad=True)
     b0.set_value(0.0)
 
-    w1 = Tensor(shape=(3, 2), requires_grad=True, stores_grad=True)
-    w1.gaussian(0.0, 0.1)
-    b1 = Tensor(shape=(2,), requires_grad=True, stores_grad=True)
+    w1_np = np.random.normal(0, 0.1, (3,2)).astype(np_precision)
+    w1 = Tensor(data=w1_np,device=dev, dtype=precision, requires_grad=True, stores_grad=True)
+    # w1 = Tensor(shape=(3, 2),device=dev, dtype=precision, requires_grad=True, stores_grad=True)
+    # w1.gaussian(0.0, 0.1)
+    b1 = Tensor(shape=(2,),device=dev, dtype=precision, requires_grad=True, stores_grad=True)
     b1.set_value(0.0)
+    # print(w0,b0,w1,b1)
 
-    sgd = opt.SGD(0.05)
+    sgd = opt.SGD(0.1)
     # training process
     for i in range(1001):
+        # print("0:",np.linalg.norm(tensor.to_numpy(inputs)))
         x = autograd.matmul(inputs, w0)
+        # print("1:",np.linalg.norm(tensor.to_numpy(x)))
         x = autograd.add_bias(x, b0)
+        # print("2:",np.linalg.norm(tensor.to_numpy(x)))
         x = autograd.relu(x)
+        # print("3:",np.linalg.norm(tensor.to_numpy(x)))
         x = autograd.matmul(x, w1)
+        # print("4:",np.linalg.norm(tensor.to_numpy(x)))
         x = autograd.add_bias(x, b1)
+        # print("5:",np.linalg.norm(tensor.to_numpy(x)))
         loss = autograd.softmax_cross_entropy(x, target)
+        # x2 = x.as_type(tensor.float32)
+        # loss2 = autograd.softmax_cross_entropy(x2, target)
+        # print(loss)
+        # print(loss2)
         sgd(loss)
+        # grads = autograd.gradients(loss)
+        # for k,v in grads.items():
+        #     assert v.dtype == precision
 
         if i % 100 == 0:
             print("training loss = ", tensor.to_numpy(loss)[0])
+
+        # print("grads",grads)
+
+        # print("6 w0:",np.linalg.norm(tensor.to_numpy(w0)))
