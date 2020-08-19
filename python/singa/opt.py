@@ -303,11 +303,15 @@ class SGD(Optimizer):
                 flag = param_value.device.graph_enabled()
                 param_value.device.EnableGraph(False)
                 self.moments[param_name] = tensor.zeros_like(param_value)
+                assert self.moments[param_name].dtype == param_value.dtype
                 param_value.device.EnableGraph(flag)
 
             buf = self.moments[param_name]
+            assert buf.dtype == param_value.dtype
             buf *= self.mom_value
+            assert self.mom_value.dtype == param_value.dtype
             alpha = 1.0 - self.dam_value
+            assert self.dam_value.dtype == param_value.dtype
             singa.Axpy(alpha.data, param_grad.data, buf.data)
 
             if self.nesterov:

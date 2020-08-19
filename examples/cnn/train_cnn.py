@@ -239,6 +239,9 @@ def run(global_rank,
 
             # Train the model
             out, loss = model(tx, ty, dist_option, spars)
+            assert out.dtype == get_singa_dtype(precision)
+            assert loss.dtype == get_singa_dtype(precision)
+
             train_correct += accuracy(tensor.to_numpy(out), y)
             train_loss += tensor.to_numpy(loss)[0]
 
@@ -335,6 +338,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    sgd = opt.SGD(lr=args.lr, momentum=0.9, weight_decay=1e-5)
+    # sgd = opt.SGD(lr=args.lr, momentum=0.9, weight_decay=1e-5)
+    # sgd = opt.SGD(lr=args.lr, momentum=0.9)
+    sgd = opt.SGD(0.05)
     run(0, 1, args.device_id, args.max_epoch, args.batch_size, args.model,
         args.data, sgd, args.graph, args.verbosity, precision=args.precision)
