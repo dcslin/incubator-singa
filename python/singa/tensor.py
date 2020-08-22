@@ -619,7 +619,10 @@ class Tensor(object):
         if isinstance(x, Tensor):
             self.data += x.data
         else:
+            dtype = self.dtype
+            self.to_type(float32)
             self.data += float(x)
+            self.to_type(dtype)
         return self
 
     def __isub__(self, x):
@@ -648,7 +651,13 @@ class Tensor(object):
             this tensor
         '''
         if isinstance(x, Tensor):
+            dtype = self.dtype
+            self.to_type(float32)
+            x.to_type(float32)
+
             self.data *= x.data
+            self.to_type(dtype)
+            x.to_type(dtype)
         else:
             self.data *= float(x)
         return self
@@ -677,7 +686,14 @@ class Tensor(object):
         if isinstance(rhs, Tensor):
             return from_raw_tensor(singa.__add__(self.data, rhs.data))
         else:
-            return _call_singa_func(singa.AddFloat, self.data, rhs)
+            dtype = self.dtype
+            self.to_type(float32)
+
+            ret = _call_singa_func(singa.AddFloat, self.data, rhs)
+
+            self.to_type(dtype)
+            ret.to_type(dtype)
+            return ret
 
     def __sub__(self, rhs):
         if isinstance(rhs, Tensor):
@@ -744,6 +760,7 @@ class Tensor(object):
             return _call_singa_func(singa.EQFloat, self.data, rhs)
 
     def __radd__(self, lhs):
+        print("rADD")
         lhs = float(lhs)
         one = Tensor(self.shape, self.device, self.dtype)
         one.set_value(lhs)
@@ -754,7 +771,16 @@ class Tensor(object):
         lhs = float(lhs)
         one = Tensor(self.shape, self.device, self.dtype)
         one.set_value(lhs)
+
+        dtype = self.dtype
+        one.to_type(float32)
+        self.to_type(float32)
+
         one -= self
+
+        one.to_type(dtype)
+        self.to_type(dtype)
+
         return one
 
     def __rmul__(self, lhs):

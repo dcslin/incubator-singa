@@ -105,6 +105,7 @@ class Optimizer(object):
 
     def call(self, loss):
         for p, g in autograd.backward(loss):
+            assert p.dtype == g.dtype, "param and grad type mismatch"
             assert p.dtype == tensor.float16, ("p name: ",p.name)
             assert g.dtype == tensor.float16
             if p.name is None:
@@ -113,7 +114,7 @@ class Optimizer(object):
 
     def step(self):
         """To increment the step counter and update the lr"""
-        self.step_counter.data += 1
+        self.step_counter += 1
         lr_value = self.lr(self.step_counter)
         self.lr_value.copy_from(lr_value)
 
@@ -312,13 +313,11 @@ class SGD(Optimizer):
                 param_value.device.EnableGraph(flag)
 
             buf = self.moments[param_name]
-            # print("1")
             assert buf.dtype == param_value.dtype
             assert buf.dtype == tensor.float16
             assert self.mom_value.dtype == tensor.float16
             buf *= self.mom_value
             assert buf.dtype == tensor.float16
-            # print("2")
             assert self.mom_value.dtype == param_value.dtype
             alpha = 1.0 - self.dam_value
             assert self.dam_value.dtype == param_value.dtype

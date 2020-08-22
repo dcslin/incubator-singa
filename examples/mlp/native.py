@@ -82,8 +82,9 @@ if __name__ == "__main__":
     target = target.as_type(tensor.int32)
 
     assert target.dtype == tensor.int32
-    print(inputs.dtype)
-    print(target.dtype)
+    assert inputs.dtype == tensor.float16
+    # print(inputs.dtype)
+    # print(target.dtype)
 
     w0_np = np.random.normal(0, 0.1, (2,3)).astype(np_precision)
     w0 = Tensor(data=w0_np,device=dev, dtype=precision, requires_grad=True, stores_grad=True)
@@ -115,15 +116,18 @@ if __name__ == "__main__":
         x = autograd.add_bias(x, b1)
         # print("5:",np.linalg.norm(tensor.to_numpy(x)))
         loss = autograd.softmax_cross_entropy(x, target)
-        # x2 = x.as_type(tensor.float32)
-        # loss2 = autograd.softmax_cross_entropy(x2, target)
         # print(loss)
-        # print(loss2)
         sgd(loss)
+
         # grads = autograd.gradients(loss)
         # for k,v in grads.items():
         #     assert v.dtype == precision
 
+        # x2 = x.as_type(tensor.float32)
+        # loss2 = autograd.softmax_cross_entropy(x2, target)
+        # print(loss2)
+
+        # print("6 w0:",np.linalg.norm(tensor.to_numpy(w0)))
         if i % 100 == 0:
             print("training loss = ", tensor.to_numpy(loss)[0])
 

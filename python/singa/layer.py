@@ -168,14 +168,15 @@ class Layer(object, metaclass=LayerMeta):
         self.set_params(states)
 
     def dtype_check(self, *inputs):
-        """ check if all input of layer input have same data type.
+        """ check if all input have same data type.
 
         Args:
             *inputs: input args consisting of only PyTensors
         """
         x_dtype = inputs[0].dtype
-        for inp in inputs:
-            assert inp.dtype == x_dtype, ("DType not matches for layer inputs")
+        for idx,inp in enumerate(inputs):
+            if inp.dtype != x_dtype:
+                inp.to_type(x_dtype)
 
     def device_check(self, *inputs):
         """ Check if the devices of the input tensor are the same.
@@ -682,6 +683,7 @@ class Conv2d(Layer):
     def forward(self, x):
         # sanitize the device of params/states, TODO: better to decorate forward()
         self.device_check(x, *[s for k, s in self.get_states().items()])
+        self.dtype_check(x, *[s for k, s in self.get_states().items()])
 
         assert (self.group >= 1 and self.in_channels % self.group
                 == 0), "please set reasonable group."
@@ -827,6 +829,8 @@ class BatchNorm2d(Layer):
             (x.shape[1], self.channels))
 
         self.device_check(x, self.scale, self.bias, self.running_mean,
+                          self.running_var)
+        self.type_check(x, self.scale, self.bias, self.running_mean,
                           self.running_var)
 
         y = autograd.batchnorm_2d(
