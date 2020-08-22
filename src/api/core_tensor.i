@@ -113,11 +113,13 @@ namespace singa{
     bool transpose() const;
     size_t nDim() const;
 
+    bool initialized() const;
     size_t Size() const;
     size_t MemSize() const;
 
     void ResetLike(const Tensor &t);
     Tensor AsType(DataType type);
+    Tensor ToType(DataType type);
     void ToDevice(std::shared_ptr<singa::Device> dev);
     void ToHost();
     float L2() const;

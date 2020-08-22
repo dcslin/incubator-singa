@@ -219,6 +219,18 @@ Tensor Tensor::AsType(const DataType type) const {
   }
 }
 
+Tensor &Tensor::ToType(const DataType type) {
+  CHECK(block() && block()->initialized() == true)
+      << "the data of the tensor needs be initialized before casting to "
+         "another type";
+  if (data_type_ != type) {
+    auto ret = this->AsType(type);
+    std::swap(ret.block_, block_);
+    data_type_ = type;
+  }
+  return *this;
+}
+
 Tensor &Tensor::ToDevice(std::shared_ptr<Device> dst) {
   // TODO(wangwei) the comparison is restricted. May compare against device ID?
   if (device_ != dst) {
@@ -265,6 +277,7 @@ template void Tensor::CopyDataFromHostPtr(const int *src, const size_t num,
 
 void Tensor::CopyData(const Tensor &src) {
   CHECK_EQ(Size(), src.Size());
+  CHECK_EQ(src.data_type(), data_type_) << "Could not copy data between different data type";
   CHECK(block_ != nullptr);
   // Do copy only if the src's block is already initialized.
   if (src.block_ != nullptr) {

@@ -284,6 +284,31 @@ class Tensor(object):
         t.data = self.data.AsType(dtype)
         return t
 
+    def to_type(self, dtype):
+        '''Change the data type inplace.
+
+        Args:
+            dtype: accepts 'int', 'float', 'singa.kFloat32', 'singa.kInt'
+
+        Returns:
+            new tensor with new type
+        '''
+        if dtype == singa.kInt:
+            pass
+        elif dtype == singa.kFloat32:
+            pass
+        elif dtype == singa.kFloat16:
+            pass
+        elif dtype == 'int':
+            dtype = singa.kInt
+        elif dtype == 'float':
+            dtype = singa.kFloat32
+        else:
+            raise TypeError("invalid data type %s" % dtype)
+        self.data.ToType(dtype)
+        self.dtype = dtype
+        return self
+
     def to_device(self, device):
         '''Move the tensor data onto a given device.
 
@@ -370,6 +395,9 @@ class Tensor(object):
             offset (int): destination offset
         '''
         if isinstance(t, Tensor):
+            assert t.data.initialized(), "Could not copy from uninitialized tensor"
+            t = t.as_type(self.dtype)
+            # assert t.dtype == self.dtype, "Could not directly copy from src type %s to %s" % (t.dtype, self.dtype)
             self.copy_data(t)
         elif isinstance(t, np.ndarray):
             self.copy_from_numpy(t)
@@ -751,7 +779,7 @@ class Tensor(object):
         return one
 
     def __repr__(self):
-        return np.array2string(to_numpy(self))
+        return "\n"+np.array2string(to_numpy(self))+"\n"
 
 
 ''' alias Tensor to PlaceHolder
@@ -1764,6 +1792,8 @@ def copy_from_numpy(data, np_array):
     dt = np_array.dtype
     if dt == np.float32:
         data.CopyFloatDataFromHostPtr(np_array)
+    elif dt == np.float16:
+        data.CopyHalfFloatDataFromHostPtr(np_array)
     elif dt == np.int or dt == np.int32:
         data.CopyIntDataFromHostPtr(np_array)
     else:

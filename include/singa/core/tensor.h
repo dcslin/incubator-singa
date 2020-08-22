@@ -118,7 +118,7 @@ class Tensor {
   const vector<int> &stride() const { return stride_; }
 
   /// Return true if the content of the tensor is initialized
-  bool initailized() const {
+  bool initialized() const {
     return block_ != nullptr && block_->initialized();
   }
 
@@ -266,6 +266,7 @@ class Tensor {
 
   /// Reset the data type, it would reallocate block if type changes.
   Tensor AsType(const DataType type) const;
+  Tensor &ToType(const DataType type);
 
   /// Reset the device.
   /// If the target device is a diff device, then do deep data copy.

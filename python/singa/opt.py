@@ -105,6 +105,8 @@ class Optimizer(object):
 
     def call(self, loss):
         for p, g in autograd.backward(loss):
+            assert p.dtype == tensor.float16, ("p name: ",p.name)
+            assert g.dtype == tensor.float16
             if p.name is None:
                 p.name = id(p)
             self.apply(p.name, p, g)
@@ -158,11 +160,12 @@ class Optimizer(object):
         Args:
             *inputs: input args consisting of only PyTensors
         """
+        # todo: toggle graph
         x_dtype = inputs[0].dtype
         for idx,inp in enumerate(inputs):
-            # assert inp.dtype == x_dtype, ("input %d has dtype %s != expected dtype %s" % (idx, inp.dtype, x_dtype))
             if inp.dtype != x_dtype:
-                inp = inp.as_type(x_dtype)
+                # print(idx,"th input")
+                inp.to_type(x_dtype)
 
     @deprecated(
         reason=
@@ -289,8 +292,10 @@ class SGD(Optimizer):
                                                        param_grad.shape)
         self.device_check(param_value, self.step_counter, self.lr_value,
                           self.mom_value, self.dam_value, self.decay_value)
+        assert param_value.dtype == tensor.float16
         self.dtype_check(param_value, self.step_counter, self.lr_value,
                           self.mom_value, self.dam_value, self.decay_value)
+        assert self.mom_value.dtype == tensor.float16
 
 
         # TODO add branch operator
@@ -307,20 +312,28 @@ class SGD(Optimizer):
                 param_value.device.EnableGraph(flag)
 
             buf = self.moments[param_name]
+            # print("1")
             assert buf.dtype == param_value.dtype
+            assert buf.dtype == tensor.float16
+            assert self.mom_value.dtype == tensor.float16
             buf *= self.mom_value
+            assert buf.dtype == tensor.float16
+            # print("2")
             assert self.mom_value.dtype == param_value.dtype
             alpha = 1.0 - self.dam_value
             assert self.dam_value.dtype == param_value.dtype
             singa.Axpy(alpha.data, param_grad.data, buf.data)
 
+            # print("3")
             if self.nesterov:
                 singa.Axpy(self.mom_value.data, buf.data, param_grad.data)
             else:
                 param_grad = buf
+            # print("4")
 
         minus_lr = 0.0 - self.lr_value
         singa.Axpy(minus_lr.data, param_grad.data, param_value.data)
+        # print("5")
 
     def step(self):
         # increment step counter, lr and moment

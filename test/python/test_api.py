@@ -1031,6 +1031,45 @@ class TestAPI(unittest.TestCase):
         print("-fp16 y", tensor.from_raw_tensor(y))
         pass
 
+    def test_to_type(self,dev=gpu_dev):
+        p_data = np.array([[0.11111111111,-0.222222222,-0.1333333333],[0.1,0.2,-0.1]]).astype(np.float32)
+        p=tensor.Tensor(data=p_data,device=gpu_dev)
+        p_d = p.data
+        print(tensor.from_raw_tensor(p_d))
+        print(p_d.data_type())
+        p_d.ToType(tensor.int32);
+        # p_d.ToType(tensor.float16);
+        print(tensor.from_raw_tensor(p_d))
+        print(p_d.data_type())
+
+        a_data = np.array([[0.11111111111,-0.222222222,-0.1333333333],[0.1,0.2,-0.1]]).astype(np.float32)
+        a=tensor.Tensor(data=p_data,device=gpu_dev)
+        print(a)
+        print(a.dtype)
+        a.to_type(tensor.float16)
+        print(a)
+        print(a.dtype)
+
+    def test_initialized(self,dev=gpu_dev):
+        a = tensor.Tensor((2,3))
+        if a.data.initialized():
+            print("inited ")
+        else:
+            print("not inited ")
+        a.set_value(0.01)
+        if a.data.initialized():
+            print("inited ")
+        else:
+            print("not inited ")
+        a.to_type(tensor.float16)
+        a.set_value(0.01)
+        if a.data.initialized():
+            print("inited ")
+        else:
+            print("not inited ")
+
+
+
     def test_f16_softmax_crossentropy_bwd(self,dev=gpu_dev):
         # p_data = np.array([[0.23,0.43,0.14],[0.23,0.43,0.14]]).astype(np.float32)
         p_data = np.array([[1,2,-1],[1,2,-1]]).astype(np.float32)
