@@ -293,6 +293,7 @@ class Tensor(object):
         Returns:
             new tensor with new type
         '''
+        assert self.data.initialized()
         if dtype == singa.kInt:
             pass
         elif dtype == singa.kFloat32:
@@ -355,6 +356,9 @@ class Tensor(object):
             raise NotImplementedError
 
         self.data.SetFloatValue(float(x))
+
+        # assert self.data.initialized()
+
         return self
 
     def copy_from_numpy(self, np_array, offset=0):
@@ -383,6 +387,8 @@ class Tensor(object):
         Args:
             t (Tensor): source Tensor.
         '''
+        t = t.as_type(self.dtype)
+        assert (t.dtype == self.dtype), "tensor type should be the same"
         assert (t.size() == self.size()), "tensor shape should be the same"
         assert isinstance(t, Tensor), 't must be a singa Tensor instance'
         self.data.CopyData(t.data)
@@ -395,9 +401,6 @@ class Tensor(object):
             offset (int): destination offset
         '''
         if isinstance(t, Tensor):
-            assert t.data.initialized(), "Could not copy from uninitialized tensor"
-            t = t.as_type(self.dtype)
-            # assert t.dtype == self.dtype, "Could not directly copy from src type %s to %s" % (t.dtype, self.dtype)
             self.copy_data(t)
         elif isinstance(t, np.ndarray):
             self.copy_from_numpy(t)
@@ -617,12 +620,17 @@ class Tensor(object):
             this tensor
         '''
         if isinstance(x, Tensor):
+            assert x.dtype == self.dtype
+            assert x.dtype != float16
             self.data += x.data
         else:
-            dtype = self.dtype
+            _t = self.dtype
             self.to_type(float32)
+
+            assert self.dtype != float16
             self.data += float(x)
-            self.to_type(dtype)
+
+            self.to_type(_t)
         return self
 
     def __isub__(self, x):
@@ -636,7 +644,17 @@ class Tensor(object):
         '''
 
         if isinstance(x, Tensor):
+            assert x.dtype == self.dtype
+            _t = x.dtype
+
+            x.to_type(float32)
+            self.to_type(float32)
+
+            assert x.dtype != float16
             self.data -= x.data
+
+            x.to_type(_t)
+            self.to_type(_t)
         else:
             self.data -= float(x)
         return self
@@ -772,14 +790,8 @@ class Tensor(object):
         one = Tensor(self.shape, self.device, self.dtype)
         one.set_value(lhs)
 
-        dtype = self.dtype
-        one.to_type(float32)
-        self.to_type(float32)
-
         one -= self
 
-        one.to_type(dtype)
-        self.to_type(dtype)
 
         return one
 

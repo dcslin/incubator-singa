@@ -128,20 +128,13 @@ def run(global_rank,
         from data import mnist
         train_x, train_y, val_x, val_y = mnist.load()
 
-    print("after load data")
-    print(type(train_x), "train_x dtype", train_x.dtype)
-
     train_x=train_x.astype(get_np_dtype(precision))
     val_x=val_x.astype(get_np_dtype(precision))
-
-    print("after astype data")
-    print(type(train_x), "train_x dtype", train_x.dtype)
 
     num_channels = train_x.shape[1]
     image_size = train_x.shape[2]
     data_size = np.prod(train_x.shape[1:train_x.ndim]).item()
     num_classes = (np.max(train_y) + 1).item()
-    #print(num_classes)
 
     if model == 'resnet':
         from model import resnet
@@ -190,12 +183,10 @@ def run(global_rank,
     '''
 
     if model.dimension == 4:
-        print("model dim 4")
         tx = tensor.Tensor(
             (batch_size, num_channels, model.input_size, model.input_size), dev,
             get_singa_dtype(precision))
     elif model.dimension == 2:
-        print("model dim 2")
         tx = tensor.Tensor((batch_size, data_size), dev, get_singa_dtype(precision))
         np.reshape(train_x, (train_x.shape[0], -1))
         np.reshape(val_x, (val_x.shape[0], -1))
@@ -207,7 +198,8 @@ def run(global_rank,
 
     # attached model to graph
     model.set_optimizer(sgd)
-    model.compile([tx], is_train=True, use_graph=graph, sequential=sequential)
+    # model.compile([tx], is_train=True, use_graph=graph, sequential=sequential)
+    model.graph_mode = False
     dev.SetVerbosity(verbosity)
 
     # Training and Evaluation Loop
