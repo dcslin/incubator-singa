@@ -177,7 +177,7 @@ class Layer(object, metaclass=LayerMeta):
         inputs[0].device.EnableGraph(False)
 
         x_dtype = inputs[0].dtype
-        for idx,inp in enumerate(inputs):
+        for inp in inputs:
             if inp.dtype != x_dtype:
                 inp.to_type(x_dtype)
 
@@ -315,12 +315,18 @@ class Linear(Layer):
         w_shape = (self.in_features, self.out_features)
         b_shape = (self.out_features,)
 
-        self.W = Tensor(shape=w_shape, dtype=x.dtype, requires_grad=True, stores_grad=True)
+        self.W = Tensor(shape=w_shape,
+                        dtype=x.dtype,
+                        requires_grad=True,
+                        stores_grad=True)
         std = math.sqrt(2.0 / (self.in_features + self.out_features))
         self.W.gaussian(0.0, std)
 
         if self.bias:
-            self.b = Tensor(shape=b_shape, dtype=x.dtype, requires_grad=True, stores_grad=True)
+            self.b = Tensor(shape=b_shape,
+                            dtype=x.dtype,
+                            requires_grad=True,
+                            stores_grad=True)
             self.b.set_value(0.0)
         else:
             self.b = None
@@ -836,7 +842,7 @@ class BatchNorm2d(Layer):
         self.device_check(x, self.scale, self.bias, self.running_mean,
                           self.running_var)
         self.type_check(x, self.scale, self.bias, self.running_mean,
-                          self.running_var)
+                        self.running_var)
 
         y = autograd.batchnorm_2d(
             self.handle,

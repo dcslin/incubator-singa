@@ -801,8 +801,8 @@ class Tensor(object):
     }
 
     def __repr__(self):
-        return "%s, %s" % (np.array2string(to_numpy(self)),
-               self.dtype_name[self.dtype])
+        return "%s, %s" % (np.array2string(
+            to_numpy(self)), self.dtype_name[self.dtype])
 
 
 ''' alias Tensor to PlaceHolder

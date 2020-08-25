@@ -22,11 +22,11 @@
 #include <tuple>
 #include <vector>
 
+#include "half.hpp"
 #include "singa/core/common.h"
 #include "singa/core/device.h"
 #include "singa/proto/core.pb.h"
 #include "singa/utils/logging.h"
-#include "half.hpp"
 
 using std::tuple;
 using std::vector;
@@ -144,7 +144,7 @@ class Tensor {
   template <typename SType>
   void get_value(SType *value, const size_t num) const;
 
-  friend std::ostream& operator<<(std::ostream& os, Tensor& out);
+  friend std::ostream &operator<<(std::ostream &os, Tensor &out);
 
   /// Serialize data, shape and transpose to protobuf object.
   void ToProto(singa::TensorProto *proto) const;
@@ -176,7 +176,7 @@ class Tensor {
 
   template <typename SType>
   void CopyDataToHostPtr(SType *src, const size_t num,
-                           const size_t offset = 0) const;
+                         const size_t offset = 0) const;
 
   /// Copy data from another Tensor which may be on a diff device.
   /// Meta data would not be copied!
