@@ -96,14 +96,14 @@ if __name__ == "__main__":
     precision=tensor.float16
     np_precision = np.float16
 
-    precision=tensor.float32
-    np_precision = np.float32
+    # precision=tensor.float32
+    # np_precision = np.float32
 
     label = np.asarray([5 * a + 1 > b for (a, b) in zip(x, y)]).astype(np.int32)
     data = np.array([[a, b] for (a, b) in zip(x, y)], dtype=np_precision)
 
     dev = device.create_cuda_gpu_on(0)
-    sgd = opt.SGD(0.05)
+    sgd = opt.SGD(0.05, dtype=precision)
 
 
     tx = tensor.Tensor((400, 2), dev, precision)
@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
     # attached model to graph
     model.set_optimizer(sgd)
-    model.compile([tx], is_train=True, use_graph=True, sequential=False)
+    model.compile([tx], is_train=True, use_graph=False, sequential=False)
     model.train()
 
     for i in range(1001):

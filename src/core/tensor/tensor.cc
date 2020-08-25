@@ -277,11 +277,23 @@ template void Tensor::CopyDataFromHostPtr(const int *src, const size_t num,
 
 void Tensor::CopyData(const Tensor &src) {
   CHECK_EQ(Size(), src.Size());
-  CHECK_EQ(src.data_type(), data_type_) << "Could not copy data between different data type";
   CHECK(block_ != nullptr);
   // Do copy only if the src's block is already initialized.
-  if (src.block_ != nullptr) {
-    singa::CopyDataToFrom(this, src, Size(), 0, 0);
+  if (src.data_type() == data_type_){
+    if (src.block_ != nullptr) {
+      singa::CopyDataToFrom(this, src, Size(), 0, 0);
+    }
+  } else {
+    CHECK_EQ(src.data_type(), data_type_) << "Could not copy data between different data type";
+    // Tensor &thisRef = *this;
+    // TYPE_TYPE_LANG_SWITCH(
+    //     data_type_, LDType, type, RDType, device_->lang(), Lang, {
+    //       src.device()->Exec(
+    //           [thisRef, src](Context *ctx) mutable {
+    //             CastCopy<LDType, RDType, Lang>(&src, &thisRef, ctx);
+    //           },
+    //           {src.block()}, {this->block()}, "CopyData");
+    //     });
   }
 }
 

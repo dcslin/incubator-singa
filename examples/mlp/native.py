@@ -69,8 +69,8 @@ if __name__ == "__main__":
     precision=tensor.float16
     np_precision = np.float16
 
-    precision=tensor.float32
-    np_precision = np.float32
+    # precision=tensor.float32
+    # np_precision = np.float32
 
     dev = device.create_cuda_gpu()
 

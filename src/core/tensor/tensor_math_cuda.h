@@ -330,6 +330,15 @@ void Transform<float, lang::Cuda>(const Tensor& in, Tensor* out, Context* ctx) {
                                                                           \
       kernel(num, inPtr1, inPtr2, outPtr, ctx->stream);                   \
     }                                                                     \
+  }                                                                       \
+  template <>                                                             \
+  void fn<half_float::half, lang::Cuda>(const Tensor& in1,                \
+                                        const Tensor& in2,                \
+                                        Tensor* out, Context* ctx) {      \
+    auto _out = Tensor(out->shape(), out->device(), kFloat32);            \
+    fn<float,lang::Cuda>(in1.AsType(kFloat32),                            \
+                         in2.AsType(kFloat32), &_out, ctx);               \
+    CastCopy<float, half_float::half, lang::Cuda>(&_out, out, ctx);       \
   }
 
 /// out = in1 * in2

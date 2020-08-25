@@ -268,6 +268,7 @@ class Tensor(object):
         Returns:
             new tensor with new type
         '''
+        assert self.data.initialized()
         if dtype == singa.kInt:
             pass
         elif dtype == singa.kFloat32:
@@ -293,7 +294,6 @@ class Tensor(object):
         Returns:
             new tensor with new type
         '''
-        assert self.data.initialized()
         if dtype == singa.kInt:
             pass
         elif dtype == singa.kFloat32:
@@ -387,8 +387,6 @@ class Tensor(object):
         Args:
             t (Tensor): source Tensor.
         '''
-        t = t.as_type(self.dtype)
-        assert (t.dtype == self.dtype), "tensor type should be the same"
         assert (t.size() == self.size()), "tensor shape should be the same"
         assert isinstance(t, Tensor), 't must be a singa Tensor instance'
         self.data.CopyData(t.data)
@@ -624,13 +622,7 @@ class Tensor(object):
             assert x.dtype != float16
             self.data += x.data
         else:
-            _t = self.dtype
-            self.to_type(float32)
-
-            assert self.dtype != float16
             self.data += float(x)
-
-            self.to_type(_t)
         return self
 
     def __isub__(self, x):
@@ -644,17 +636,7 @@ class Tensor(object):
         '''
 
         if isinstance(x, Tensor):
-            assert x.dtype == self.dtype
-            _t = x.dtype
-
-            x.to_type(float32)
-            self.to_type(float32)
-
-            assert x.dtype != float16
             self.data -= x.data
-
-            x.to_type(_t)
-            self.to_type(_t)
         else:
             self.data -= float(x)
         return self
@@ -812,8 +794,15 @@ class Tensor(object):
         one /= self
         return one
 
+    dtype_name = {
+        float16: "float16",
+        float32: "float32",
+        int32: "int32",
+    }
+
     def __repr__(self):
-        return "\n%s\n" % (np.array2string(to_numpy(self)))
+        return "%s, %s" % (np.array2string(to_numpy(self)),
+               self.dtype_name[self.dtype])
 
 
 ''' alias Tensor to PlaceHolder

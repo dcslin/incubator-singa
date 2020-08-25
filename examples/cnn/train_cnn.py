@@ -26,17 +26,15 @@ import time
 import argparse
 from PIL import Image
 
-def get_np_dtype(precision):
-    if precision == "float16":
-        return np.float16
-    else:
-        return np.float32
+np_dtype = {
+    "float16": np.float16,
+    "float32": np.float32
+}
 
-def get_singa_dtype(precision):
-    if precision == "float16":
-        return tensor.float16
-    else:
-        return tensor.float32
+singa_dtype = {
+    "float16": tensor.float16,
+    "float32": tensor.float32
+}
 
 # Data Augmentation
 def augmentation(x, batch_size):
@@ -128,8 +126,8 @@ def run(global_rank,
         from data import mnist
         train_x, train_y, val_x, val_y = mnist.load()
 
-    train_x=train_x.astype(get_np_dtype(precision))
-    val_x=val_x.astype(get_np_dtype(precision))
+    train_x=train_x.astype(np_dtype[precision])
+    val_x=val_x.astype(np_dtype[precision])
 
     num_channels = train_x.shape[1]
     image_size = train_x.shape[2]
@@ -185,9 +183,9 @@ def run(global_rank,
     if model.dimension == 4:
         tx = tensor.Tensor(
             (batch_size, num_channels, model.input_size, model.input_size), dev,
-            get_singa_dtype(precision))
+            singa_dtype[precision])
     elif model.dimension == 2:
-        tx = tensor.Tensor((batch_size, data_size), dev, get_singa_dtype(precision))
+        tx = tensor.Tensor((batch_size, data_size), dev, singa_dtype[precision])
         np.reshape(train_x, (train_x.shape[0], -1))
         np.reshape(val_x, (val_x.shape[0], -1))
 
@@ -198,8 +196,7 @@ def run(global_rank,
 
     # attached model to graph
     model.set_optimizer(sgd)
-    # model.compile([tx], is_train=True, use_graph=graph, sequential=sequential)
-    model.graph_mode = False
+    model.compile([tx], is_train=True, use_graph=graph, sequential=sequential)
     dev.SetVerbosity(verbosity)
 
     # Training and Evaluation Loop
@@ -327,7 +324,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    sgd = opt.SGD(lr=args.lr, momentum=0.9, weight_decay=1e-5)
-    # sgd = opt.SGD(0.05)
+    sgd = opt.SGD(lr=args.lr, momentum=0.9, weight_decay=1e-5, dtype=singa_dtype[args.precision])
     run(0, 1, args.device_id, args.max_epoch, args.batch_size, args.model,
         args.data, sgd, args.graph, args.verbosity, precision=args.precision)

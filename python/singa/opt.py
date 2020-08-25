@@ -27,8 +27,9 @@ from deprecated import deprecated
 
 class DecayScheduler:
     # to be used for decaying learning rate or regularization coefficient or momentum, etc.
-    def __init__(self, init_value):
+    def __init__(self, init_value, dtype=tensor.float32):
         self.init_value = init_value
+        self.dtype = dtype
 
     def __call__(self, step):
         assert isinstance(step, Tensor)
@@ -44,7 +45,7 @@ class Constant(DecayScheduler):
 
     def call(self, step: Tensor) -> Tensor:
         # TODO should be an in-place operator
-        ret = Tensor((1,), step.device)
+        ret = Tensor((1,), step.device, self.dtype)
         ret.set_value(self.init_value)
         return ret
 
@@ -63,7 +64,7 @@ class ExponentialDecay(DecayScheduler):
             s = step // self.decay_steps
         else:
             s = step / self.decay_steps
-        ret = Tensor((1,), s.device)
+        ret = Tensor((1,), s.device, self.dtype)
         ret.set_value(self.decay_rate)
         return self.init_value * tensor.pow(ret, s)
 
@@ -75,7 +76,7 @@ class Optimizer(object):
         config (Dict): specify the default values of configurable variables.
     """
 
-    def __init__(self, lr):
+    def __init__(self, lr, dtype=tensor.float32):
         # init lr(could be a constant scalar or a learning rate scheduler)
         if type(lr) == float or type(lr) == int:
             self.lr = Constant(lr)
@@ -85,10 +86,13 @@ class Optimizer(object):
             raise TypeError("Wrong learning rate type")
 
         # init step counter
+        self.dtype = dtype
         # TODO change type to int32
         self.step_counter = Tensor((1,), dtype=tensor.float32)
         self.step_counter.set_value(0)
         self.lr_value = self.lr(self.step_counter)
+
+        self.dtype_check(self.lr_value)
 
     def get_states(self):
         # skip DecayScheduler as it does not have persistent states
@@ -98,6 +102,8 @@ class Optimizer(object):
         self.step_counter = Tensor((1,))
         self.step_counter.set_value(states['step_counter'])
         self.lr_value = self.lr(self.step_counter)
+
+        self.dtype_check(self.lr_value)
 
     def __call__(self, loss):
         self.call(loss)
@@ -113,6 +119,7 @@ class Optimizer(object):
         """To increment the step counter and update the lr"""
         self.step_counter += 1
         lr_value = self.lr(self.step_counter)
+        self.dtype_check(lr_value)
         self.lr_value.copy_from(lr_value)
 
     def apply(self, param_name, param_value, param_grad):
@@ -151,7 +158,7 @@ class Optimizer(object):
             if var.device.id() != x_dev_id:
                 var.to_device(x_device)
         inputs[0].device.EnableGraph(flag)
-    
+
     def dtype_check(self, *inputs):
         """ check if all input have same data type.
 
@@ -161,10 +168,9 @@ class Optimizer(object):
         flag = inputs[0].device.graph_enabled()
         inputs[0].device.EnableGraph(False)
 
-        x_dtype = inputs[0].dtype
         for inp in inputs:
-            if inp.dtype != x_dtype:
-                inp.to_type(x_dtype)
+            if inp.dtype != self.dtype:
+                inp.to_type(self.dtype)
 
         inputs[0].device.EnableGraph(flag)
 
@@ -233,8 +239,9 @@ class SGD(Optimizer):
                  momentum=0,
                  dampening=0,
                  weight_decay=0,
-                 nesterov=False):
-        super(SGD, self).__init__(lr)
+                 nesterov=False,
+                 dtype=tensor.float32):
+        super(SGD, self).__init__(lr, dtype)
 
         # init momentum
         if type(momentum) == float or type(momentum) == int:
@@ -270,6 +277,8 @@ class SGD(Optimizer):
             raise TypeError("Wrong weight_decay type")
         self.decay_value = self.weight_decay(self.step_counter)
 
+        self.dtype_check(self.mom_value, self.dam_value, self.decay_value)
+
         # init other params
         self.nesterov = nesterov
         self.moments = dict()
@@ -293,8 +302,8 @@ class SGD(Optimizer):
                                                        param_grad.shape)
         self.device_check(param_value, self.step_counter, self.lr_value,
                           self.mom_value, self.dam_value, self.decay_value)
-        self.dtype_check(param_value, self.step_counter, self.lr_value,
-                          self.mom_value, self.dam_value, self.decay_value)
+        self.dtype_check(param_value, self.lr_value, self.mom_value,
+                         self.dam_value, self.decay_value)
 
         # TODO add branch operator
         # if self.decay_value != 0:
@@ -311,7 +320,6 @@ class SGD(Optimizer):
             buf = self.moments[param_name]
             buf *= self.mom_value
             alpha = 1.0 - self.dam_value
-            # todo: failed half way
             singa.Axpy(alpha.data, param_grad.data, buf.data)
 
             if self.nesterov:
@@ -328,6 +336,8 @@ class SGD(Optimizer):
         mom_value = self.momentum(self.step_counter)
         dam_value = self.dampening(self.step_counter)
         decay_value = self.weight_decay(self.step_counter)
+        self.dtype_check(mom_value, dam_value, decay_value)
+
         self.mom_value.copy_from(mom_value)
         self.dam_value.copy_from(dam_value)
         self.decay_value.copy_from(decay_value)
