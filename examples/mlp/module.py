@@ -20,7 +20,20 @@
 from singa import layer
 from singa import model
 from singa import tensor
+from singa import opt
+from singa import device
+import argparse
+import numpy as np
 
+np_dtype = {
+    "float16": np.float16,
+    "float32": np.float32
+}
+
+singa_dtype = {
+    "float16": tensor.float16,
+    "float32": tensor.float32
+}
 
 class MLP(model.Model):
 
@@ -79,9 +92,18 @@ __all__ = ['MLP', 'create_model']
 
 if __name__ == "__main__":
 
-    import numpy as np
-    from singa import opt
-    from singa import device
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p',
+                        choices=['float32','float16'],
+                        default='float32',
+                        dest='precision')
+    parser.add_argument('-g',
+                        '--disable-graph',
+                        default='True',
+                        action='store_false',
+                        help='disable graph',
+                        dest='graph')
+    args = parser.parse_args()
 
     # generate the boundary
     f = lambda x: (5 * x + 1)
@@ -93,11 +115,8 @@ if __name__ == "__main__":
     # convert training data to 2d space
 
     # choose one precision
-    precision=tensor.float16
-    np_precision = np.float16
-
-    # precision=tensor.float32
-    # np_precision = np.float32
+    precision = singa_dtype[args.precision]
+    np_precision = np_dtype[args.precision]
 
     label = np.asarray([5 * a + 1 > b for (a, b) in zip(x, y)]).astype(np.int32)
     data = np.array([[a, b] for (a, b) in zip(x, y)], dtype=np_precision)
@@ -112,7 +131,7 @@ if __name__ == "__main__":
 
     # attached model to graph
     model.set_optimizer(sgd)
-    model.compile([tx], is_train=True, use_graph=False, sequential=False)
+    model.compile([tx], is_train=True, use_graph=args.graph, sequential=False)
     model.train()
 
     for i in range(1001):

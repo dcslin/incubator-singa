@@ -22,9 +22,26 @@ from singa.tensor import Tensor
 from singa import autograd
 from singa import opt
 from singa import device
+import argparse
 import numpy as np
 
+np_dtype = {
+    "float16": np.float16,
+    "float32": np.float32
+}
+
+singa_dtype = {
+    "float16": tensor.float16,
+    "float32": tensor.float32
+}
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p',
+                        choices=['float32','float16'],
+                        default='float32',
+                        dest='precision')
+    args = parser.parse_args()
 
     np.random.seed(0)
 
@@ -65,12 +82,8 @@ if __name__ == "__main__":
     print("train_data_shape:", data.shape)
     print("train_label_shape:", label.shape)
 
-    # choose one precision
-    precision=tensor.float16
-    np_precision = np.float16
-
-    # precision=tensor.float32
-    # np_precision = np.float32
+    precision = singa_dtype[args.precision]
+    np_precision = np_dtype[args.precision]
 
     dev = device.create_cuda_gpu()
 
@@ -90,7 +103,7 @@ if __name__ == "__main__":
     b1 = Tensor(shape=(2,),device=dev, dtype=precision, requires_grad=True, stores_grad=True)
     b1.set_value(0.0)
 
-    sgd = opt.SGD(0.05)
+    sgd = opt.SGD(0.05, dtype=precision)
     # training process
     for i in range(1001):
         x = autograd.matmul(inputs, w0)
