@@ -1313,21 +1313,14 @@ class SoftMaxCrossEntropy(Operator):
         self.t = t.data
 
     def forward(self, x):
-        # print("softmax in shape", x.shape()) # 2,3
         self.p = singa.SoftMax(x)
-        # print("softmax prob:",np.linalg.norm(tensor.to_numpy(tensor.from_raw_tensor(x))))
-        # print("softmax prob:",tensor.from_raw_tensor(self.p))
-        # print("cross in shape", self.p.shape(), self.t.shape()) #2,3 2,3
         ret = singa.CrossEntropyFwd(self.p, self.t)
-        # print("cross ent per sample:",np.linalg.norm(tensor.to_numpy(tensor.from_raw_tensor(ret))))
-        # print("cross ent per sample:",tensor.from_raw_tensor(ret))
         loss = singa.SumAll(ret)
         loss /= x.shape()[0]
         return loss
 
     def backward(self, dy=1.0):
         dx = singa.SoftmaxCrossEntropyBwd(self.p, self.t)
-        # print("dx from sce bwd", tensor.from_raw_tensor(dx))
         dx /= float(self.p.shape()[0])
         return dx
 

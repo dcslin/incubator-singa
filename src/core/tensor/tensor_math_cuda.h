@@ -1120,7 +1120,6 @@ void Dot<half_float::half, lang::Cuda>(const Tensor& in1, const Tensor& in2, Ten
   Tensor _out = Tensor(out->shape(), out->device(), kFloat32);
   Dot<float, lang::Cuda>(_in1, _in2, &_out, ctx);
   CastCopy<float, half_float::half, lang::Cuda>(&_out, out, ctx);
-  // std::cout << "Dot<>" <<"_in1"<< _in1 << "_in2" <<_in2 << "out" << *out <<std::endl;
 }
 
 // http://docs.nvidia.com/cuda/cublas/#cublas-lt-t-gt-gemm
@@ -1314,15 +1313,7 @@ void ComputeCrossEntropy<half_float::half, lang::Cuda>(bool int_target,
                                             const size_t dim, const Tensor& p,
                                             const Tensor& t, Tensor* loss,
                                             Context* ctx) {
-  // todo: int16_t for target
-  // todo: value error
-  // const __half* pPtr = static_cast<const __half*>(p.block()->data());
-  // const __half* tPtr = static_cast<const __half*>(t.block()->data());
-  // __half* lossPtr = static_cast<__half*>(loss->block()->mutable_data());
-  // cuda::ComputeCrossEntropy(int_target, batchsize, dim, pPtr, tPtr, lossPtr,
-  //                           ctx->stream);
   auto _p = p.AsType(kFloat32);
-  // auto _t = t.AsType(kFloat32); # t type == int
   Tensor _loss = Tensor(loss->shape(), loss->device(), kFloat32);
   ComputeCrossEntropy<float, lang::Cuda>(int_target, batchsize, dim, _p, t, &_loss, ctx);
   CastCopy<float, half_float::half, lang::Cuda>(&_loss, loss, ctx);

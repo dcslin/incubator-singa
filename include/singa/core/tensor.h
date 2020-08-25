@@ -266,6 +266,8 @@ class Tensor {
 
   /// Reset the data type, it would reallocate block if type changes.
   Tensor AsType(const DataType type) const;
+
+  /// change data type for this tensor
   Tensor &ToType(const DataType type);
 
   /// Reset the device.

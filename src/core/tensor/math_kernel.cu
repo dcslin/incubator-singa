@@ -469,7 +469,6 @@ __global__ void KernelComputeCrossEntropy(const bool int_target, const size_t ba
       for (size_t j = 0; j < dim; j++) {
         sum += t[sample * dim + j];
       }
-      // printf("fp32 sum %f\n", sum);
       loss[sample] = 0;
       for (size_t j = 0, offset = sample * dim; j < dim; j++, offset++) {
         loss[sample] -= t[offset] / sum * std::log(max(p[offset], FLT_MIN));

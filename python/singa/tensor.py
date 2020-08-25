@@ -778,7 +778,6 @@ class Tensor(object):
             return _call_singa_func(singa.EQFloat, self.data, rhs)
 
     def __radd__(self, lhs):
-        print("rADD")
         lhs = float(lhs)
         one = Tensor(self.shape, self.device, self.dtype)
         one.set_value(lhs)
@@ -789,10 +788,7 @@ class Tensor(object):
         lhs = float(lhs)
         one = Tensor(self.shape, self.device, self.dtype)
         one.set_value(lhs)
-
         one -= self
-
-
         return one
 
     def __rmul__(self, lhs):
@@ -817,7 +813,7 @@ class Tensor(object):
         return one
 
     def __repr__(self):
-        return "\n"+np.array2string(to_numpy(self))+"\n"
+        return "\n%s\n" % (np.array2string(to_numpy(self)))
 
 
 ''' alias Tensor to PlaceHolder

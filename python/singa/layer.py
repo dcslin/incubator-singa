@@ -173,10 +173,15 @@ class Layer(object, metaclass=LayerMeta):
         Args:
             *inputs: input args consisting of only PyTensors
         """
+        flag = inputs[0].device.graph_enabled()
+        inputs[0].device.EnableGraph(False)
+
         x_dtype = inputs[0].dtype
         for idx,inp in enumerate(inputs):
             if inp.dtype != x_dtype:
                 inp.to_type(x_dtype)
+
+        inputs[0].device.EnableGraph(flag)
 
     def device_check(self, *inputs):
         """ Check if the devices of the input tensor are the same.

@@ -92,11 +92,12 @@ if __name__ == "__main__":
     y = f(x) + 2 * np.random.randn(len(x))
     # convert training data to 2d space
 
+    # choose one precision
     precision=tensor.float16
     np_precision = np.float16
 
-    # precision=tensor.float32
-    # np_precision = np.float32
+    precision=tensor.float32
+    np_precision = np.float32
 
     label = np.asarray([5 * a + 1 > b for (a, b) in zip(x, y)]).astype(np.int32)
     data = np.array([[a, b] for (a, b) in zip(x, y)], dtype=np_precision)

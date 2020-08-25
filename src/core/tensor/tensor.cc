@@ -839,7 +839,6 @@ void Tensor::get_value(SType *value, const size_t num) const {
   CHECK(device_ == defaultDevice);
   Tensor t(shape_, device_, data_type_);
   // transform function arrange data in memory considering stride
-  // std::cout<<"get_value"<<typeid(SType).name()<<"\n";
   singa::Transform(*this, &t);
   auto ptr = static_cast<const SType *>(t.block()->data());
   for (size_t i = 0; i < num; i++) value[i] = ptr[i];

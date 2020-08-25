@@ -105,9 +105,6 @@ class Optimizer(object):
 
     def call(self, loss):
         for p, g in autograd.backward(loss):
-            assert p.dtype == g.dtype, "param and grad type mismatch"
-            assert p.dtype == tensor.float16, ("p name: ",p.name)
-            assert g.dtype == tensor.float16
             if p.name is None:
                 p.name = id(p)
             self.apply(p.name, p, g)
@@ -161,15 +158,13 @@ class Optimizer(object):
         Args:
             *inputs: input args consisting of only PyTensors
         """
-        # todo: toggle graph
         flag = inputs[0].device.graph_enabled()
         inputs[0].device.EnableGraph(False)
 
         x_dtype = inputs[0].dtype
-        for idx,inp in enumerate(inputs):
+        for inp in inputs:
             if inp.dtype != x_dtype:
                 inp.to_type(x_dtype)
-                assert inp.data.initialized()
 
         inputs[0].device.EnableGraph(flag)
 
@@ -301,7 +296,6 @@ class SGD(Optimizer):
         self.dtype_check(param_value, self.step_counter, self.lr_value,
                           self.mom_value, self.dam_value, self.decay_value)
 
-
         # TODO add branch operator
         # if self.decay_value != 0:
         if self.weight_decay.init_value != 0:
@@ -312,19 +306,11 @@ class SGD(Optimizer):
                 flag = param_value.device.graph_enabled()
                 param_value.device.EnableGraph(False)
                 self.moments[param_name] = tensor.zeros_like(param_value)
-                assert self.moments[param_name].dtype == param_value.dtype
                 param_value.device.EnableGraph(flag)
 
             buf = self.moments[param_name]
-            assert buf.dtype == param_value.dtype
-            assert buf.dtype == tensor.float16
-            assert self.mom_value.dtype == tensor.float16
             buf *= self.mom_value
-            assert buf.dtype == tensor.float16
-            assert self.mom_value.dtype == param_value.dtype
             alpha = 1.0 - self.dam_value
-            assert self.dam_value.dtype == param_value.dtype
-
             # todo: failed half way
             singa.Axpy(alpha.data, param_grad.data, buf.data)
 
