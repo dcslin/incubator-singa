@@ -817,6 +817,25 @@ void Axpy<float, lang::Cpp>(const float alpha, const Tensor &in, Tensor *out,
   }
 }
 
+template <>
+void Axpy<float, lang::Cpp>(const Tensor &alpha, const Tensor &in, Tensor *out,
+                            Context *ctx) {
+  // check input tensor for strides first
+  const float *inPtr = static_cast<const float *>(in.block()->data());
+  const float *alphaPtr = static_cast<const float *>(alpha.block()->data());
+  float *outPtr = static_cast<float *>(out->block()->mutable_data());
+
+  if (in.stride() == out->stride()) {
+    cblas_saxpy(in.Size(), *alphaPtr, inPtr, 1, outPtr, 1);
+  } else {
+    // LOG(FATAL) << "Axpy, input and output strides do not match." ;
+    Tensor t(in.shape(), in.device(), in.data_type());
+    EltwiseMult<float, lang::Cpp>(in, *alphaPtr, &t, ctx);
+    float *tPtr = static_cast<float *>(t.block()->mutable_data());
+    cblas_saxpy(in.Size(), 1, tPtr, 1, outPtr, 1);
+  }
+}
+
 // template <>
 // void Axpy<float, lang::Cpp>(const float alpha,
 //                            const Tensor& in, Tensor *out, Context *ctx) {
