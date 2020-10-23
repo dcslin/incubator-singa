@@ -1,0 +1,528 @@
+train shape torch.Size([60000, 28, 28])
+Selected optimization level O3:  Pure FP16 training.
+Defaults for this optimization level are:
+enabled                : True
+opt_level              : O3
+cast_model_type        : torch.float16
+patch_torch_functions  : False
+keep_batchnorm_fp32    : False
+master_weights         : False
+loss_scale             : 1.0
+Processing user overrides (additional kwargs that are not None)...
+After processing overrides, optimization options are:
+enabled                : True
+opt_level              : O3
+cast_model_type        : torch.float16
+patch_torch_functions  : False
+keep_batchnorm_fp32    : False
+master_weights         : False
+loss_scale             : 1.0
+Train Epoch: 1 [0/60000 (0%)]	Loss: 2.310944
+Train Epoch: 1 [640/60000 (1%)]	Loss: 1.592264
+Train Epoch: 1 [1280/60000 (2%)]	Loss: 0.652337
+Train Epoch: 1 [1920/60000 (3%)]	Loss: 0.348215
+Train Epoch: 1 [2560/60000 (4%)]	Loss: 0.369264
+Train Epoch: 1 [3200/60000 (5%)]	Loss: 0.289428
+Train Epoch: 1 [3840/60000 (6%)]	Loss: 0.130183
+Train Epoch: 1 [4480/60000 (7%)]	Loss: 0.240972
+Train Epoch: 1 [5120/60000 (9%)]	Loss: 0.332159
+Train Epoch: 1 [5760/60000 (10%)]	Loss: 0.240374
+Train Epoch: 1 [6400/60000 (11%)]	Loss: 0.283219
+Train Epoch: 1 [7040/60000 (12%)]	Loss: 0.113863
+Train Epoch: 1 [7680/60000 (13%)]	Loss: 0.372490
+Train Epoch: 1 [8320/60000 (14%)]	Loss: 0.254397
+Train Epoch: 1 [8960/60000 (15%)]	Loss: 0.235708
+Train Epoch: 1 [9600/60000 (16%)]	Loss: 0.034904
+Train Epoch: 1 [10240/60000 (17%)]	Loss: 0.085812
+Train Epoch: 1 [10880/60000 (18%)]	Loss: 0.135216
+Train Epoch: 1 [11520/60000 (19%)]	Loss: 0.227059
+Train Epoch: 1 [12160/60000 (20%)]	Loss: 0.253090
+Train Epoch: 1 [12800/60000 (21%)]	Loss: 0.149745
+Train Epoch: 1 [13440/60000 (22%)]	Loss: 0.326801
+Train Epoch: 1 [14080/60000 (23%)]	Loss: 0.351999
+Train Epoch: 1 [14720/60000 (25%)]	Loss: 0.160087
+Train Epoch: 1 [15360/60000 (26%)]	Loss: 0.131629
+Train Epoch: 1 [16000/60000 (27%)]	Loss: 0.062392
+Train Epoch: 1 [16640/60000 (28%)]	Loss: 0.037605
+Train Epoch: 1 [17280/60000 (29%)]	Loss: 0.059459
+Train Epoch: 1 [17920/60000 (30%)]	Loss: 0.130003
+Train Epoch: 1 [18560/60000 (31%)]	Loss: 0.117076
+Train Epoch: 1 [19200/60000 (32%)]	Loss: 0.153001
+Train Epoch: 1 [19840/60000 (33%)]	Loss: 0.170127
+Train Epoch: 1 [20480/60000 (34%)]	Loss: 0.024750
+Train Epoch: 1 [21120/60000 (35%)]	Loss: 0.161490
+Train Epoch: 1 [21760/60000 (36%)]	Loss: 0.079197
+Train Epoch: 1 [22400/60000 (37%)]	Loss: 0.013431
+Train Epoch: 1 [23040/60000 (38%)]	Loss: 0.072114
+Train Epoch: 1 [23680/60000 (39%)]	Loss: 0.134268
+Train Epoch: 1 [24320/60000 (41%)]	Loss: 0.143980
+Train Epoch: 1 [24960/60000 (42%)]	Loss: 0.041587
+Train Epoch: 1 [25600/60000 (43%)]	Loss: 0.012441
+Train Epoch: 1 [26240/60000 (44%)]	Loss: 0.062259
+Train Epoch: 1 [26880/60000 (45%)]	Loss: 0.008832
+Train Epoch: 1 [27520/60000 (46%)]	Loss: 0.018685
+Train Epoch: 1 [28160/60000 (47%)]	Loss: 0.030546
+Train Epoch: 1 [28800/60000 (48%)]	Loss: 0.182108
+Train Epoch: 1 [29440/60000 (49%)]	Loss: 0.056010
+Train Epoch: 1 [30080/60000 (50%)]	Loss: 0.020764
+Train Epoch: 1 [30720/60000 (51%)]	Loss: 0.080380
+Train Epoch: 1 [31360/60000 (52%)]	Loss: 0.035253
+Train Epoch: 1 [32000/60000 (53%)]	Loss: 0.052226
+Train Epoch: 1 [32640/60000 (54%)]	Loss: 0.145382
+Train Epoch: 1 [33280/60000 (55%)]	Loss: 0.105633
+Train Epoch: 1 [33920/60000 (57%)]	Loss: 0.045037
+Train Epoch: 1 [34560/60000 (58%)]	Loss: 0.024993
+Train Epoch: 1 [35200/60000 (59%)]	Loss: 0.055916
+Train Epoch: 1 [35840/60000 (60%)]	Loss: 0.062733
+Train Epoch: 1 [36480/60000 (61%)]	Loss: 0.050838
+Train Epoch: 1 [37120/60000 (62%)]	Loss: 0.060132
+Train Epoch: 1 [37760/60000 (63%)]	Loss: 0.081200
+Train Epoch: 1 [38400/60000 (64%)]	Loss: 0.020304
+Train Epoch: 1 [39040/60000 (65%)]	Loss: 0.004767
+Train Epoch: 1 [39680/60000 (66%)]	Loss: 0.002244
+Train Epoch: 1 [40320/60000 (67%)]	Loss: 0.111519
+Train Epoch: 1 [40960/60000 (68%)]	Loss: 0.020431
+Train Epoch: 1 [41600/60000 (69%)]	Loss: 0.071285
+Train Epoch: 1 [42240/60000 (70%)]	Loss: 0.066303
+Train Epoch: 1 [42880/60000 (71%)]	Loss: 0.127946
+Train Epoch: 1 [43520/60000 (72%)]	Loss: 0.011289
+Train Epoch: 1 [44160/60000 (74%)]	Loss: 0.109651
+Train Epoch: 1 [44800/60000 (75%)]	Loss: 0.050711
+Train Epoch: 1 [45440/60000 (76%)]	Loss: 0.026791
+Train Epoch: 1 [46080/60000 (77%)]	Loss: 0.013125
+Train Epoch: 1 [46720/60000 (78%)]	Loss: 0.077870
+Train Epoch: 1 [47360/60000 (79%)]	Loss: 0.039982
+Train Epoch: 1 [48000/60000 (80%)]	Loss: 0.010152
+Train Epoch: 1 [48640/60000 (81%)]	Loss: 0.121571
+Train Epoch: 1 [49280/60000 (82%)]	Loss: 0.082909
+Train Epoch: 1 [49920/60000 (83%)]	Loss: 0.057445
+Train Epoch: 1 [50560/60000 (84%)]	Loss: 0.155982
+Train Epoch: 1 [51200/60000 (85%)]	Loss: 0.010417
+Train Epoch: 1 [51840/60000 (86%)]	Loss: 0.162829
+Train Epoch: 1 [52480/60000 (87%)]	Loss: 0.059405
+Train Epoch: 1 [53120/60000 (88%)]	Loss: 0.016044
+Train Epoch: 1 [53760/60000 (90%)]	Loss: 0.006768
+Train Epoch: 1 [54400/60000 (91%)]	Loss: 0.157166
+Train Epoch: 1 [55040/60000 (92%)]	Loss: 0.012952
+Train Epoch: 1 [55680/60000 (93%)]	Loss: 0.020241
+Train Epoch: 1 [56320/60000 (94%)]	Loss: 0.012263
+Train Epoch: 1 [56960/60000 (95%)]	Loss: 0.158598
+Train Epoch: 1 [57600/60000 (96%)]	Loss: 0.102130
+Train Epoch: 1 [58240/60000 (97%)]	Loss: 0.018961
+Train Epoch: 1 [58880/60000 (98%)]	Loss: 0.070851
+Train Epoch: 1 [59520/60000 (99%)]	Loss: 0.031618
+training used time 16.17047 sec
+to dev 0.46863, forw 1.25557, loss 0.06638, back 2.12246, step 2.06396
+         569769 function calls (564582 primitive calls) in 16.171 seconds
+
+   Ordered by: internal time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     6576    9.485    0.001    9.485    0.001 {method 'acquire' of '_thread.lock' objects}
+      938    1.980    0.002    1.980    0.002 {method 'run_backward' of 'torch._C._EngineBase' objects}
+     3752    0.542    0.000    0.542    0.000 {method 'to' of 'torch._C._TensorBase' objects}
+    22512    0.508    0.000    0.508    0.000 {method 'mul_' of 'torch._C._TensorBase' objects}
+    15008    0.462    0.000    0.462    0.000 {method 'add' of 'torch._C._TensorBase' objects}
+     1876    0.359    0.000    0.359    0.000 {built-in method conv2d}
+    15008    0.297    0.000    0.297    0.000 {method 'addcmul_' of 'torch._C._TensorBase' objects}
+    15008    0.242    0.000    0.242    0.000 {method 'sqrt_' of 'torch._C._TensorBase' objects}
+      938    0.190    0.000    2.031    0.002 /root/miniconda/lib/python3.8/site-packages/torch/optim/adadelta.py:38(step)
+     1876    0.172    0.000    0.172    0.000 {built-in method addmm}
+     7504    0.145    0.000    0.145    0.000 {method 'add_' of 'torch._C._TensorBase' objects}
+     7496    0.128    0.000    0.128    0.000 {method 'zero_' of 'torch._C._TensorBase' objects}
+     7504    0.125    0.000    0.125    0.000 {method 'div_' of 'torch._C._TensorBase' objects}
+     2814    0.102    0.000    0.102    0.000 {built-in method relu}
+     1876    0.094    0.000    0.094    0.000 {built-in method max_pool2d}
+    37504    0.089    0.000    0.102    0.000 /root/miniconda/lib/python3.8/site-packages/torch/tensor.py:725(grad)
+        1    0.088    0.088    0.088    0.088 {built-in method posix.fork}
+        1    0.075    0.075   16.171   16.171 torch-examples/cnn_mnist.py:47(train)
+        1    0.072    0.072    0.072    0.072 {method 'poll' of 'select.poll' objects}
+      939    0.070    0.000    0.112    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/sampler.py:206(__iter__)
+ 4690/938    0.068    0.000    1.248    0.001 /root/miniconda/lib/python3.8/site-packages/torch/nn/modules/module.py:710(_call_impl)
+      938    0.046    0.000    1.078    0.001 torch-examples/cnn_mnist.py:30(forward)
+      938    0.043    0.000    0.043    0.000 {built-in method torch._C._nn.nll_loss}
+      938    0.041    0.000    0.242    0.000 /root/miniconda/lib/python3.8/site-packages/torch/optim/optimizer.py:166(zero_grad)
+      938    0.038    0.000    0.038    0.000 {method 'log_softmax' of 'torch._C._TensorBase' objects}
+      938    0.037    0.000    0.037    0.000 {built-in method ones_like}
+84311/83840    0.033    0.000    0.036    0.000 {built-in method builtins.len}
+       95    0.027    0.000    0.027    0.000 {method 'item' of 'torch._C._TensorBase' objects}
+3752/2814    0.024    0.000    0.139    0.000 /root/miniconda/lib/python3.8/site-packages/apex/amp/_initialize.py:39(applier)
+    11256    0.023    0.000    0.023    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/modules/module.py:758(__getattr__)
+     1876    0.022    0.000    0.022    0.000 {method 't' of 'torch._C._TensorBase' objects}
+     1876    0.021    0.000    0.240    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/functional.py:1655(linear)
+    60942    0.019    0.000    0.019    0.000 {method 'append' of 'list' objects}
+    44087    0.017    0.000    0.017    0.000 {built-in method builtins.hasattr}
+     1876    0.017    0.000    0.027    0.000 /root/miniconda/lib/python3.8/site-packages/apex/amp/handle.py:16(scale_loss)
+     7496    0.016    0.000    0.016    0.000 {method 'detach_' of 'torch._C._TensorBase' objects}
+      938    0.016    0.000    0.016    0.000 {built-in method flatten}
+     1876    0.016    0.000    0.123    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/functional.py:564(_max_pool2d)
+      938    0.015    0.000    9.527    0.010 /root/miniconda/lib/python3.8/queue.py:153(get)
+     4690    0.013    0.000    0.013    0.000 {built-in method torch._C._get_tracing_state}
+    15978    0.012    0.000    0.019    0.000 {built-in method builtins.isinstance}
+     2814    0.012    0.000    0.115    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/functional.py:1106(relu)
+      938    0.011    0.000    0.062    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/functional.py:2158(nll_loss)
+     1876    0.011    0.000    0.255    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/modules/linear.py:90(forward)
+      939    0.011    0.000    9.779    0.010 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:945(_next_data)
+     1881    0.011    0.000    0.023    0.000 /root/miniconda/lib/python3.8/threading.py:341(notify)
+     1876    0.010    0.000    0.372    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/modules/conv.py:410(_conv_forward)
+      938    0.010    0.000    0.049    0.000 /root/miniconda/lib/python3.8/site-packages/torch/autograd/__init__.py:25(_make_grads)
+      940    0.010    0.000    0.155    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:991(_try_put_index)
+      939    0.010    0.000    9.496    0.010 /root/miniconda/lib/python3.8/threading.py:270(wait)
+      938    0.009    0.000    2.054    0.002 /root/miniconda/lib/python3.8/site-packages/torch/autograd/grad_mode.py:12(decorate_context)
+     1879    0.009    0.000    0.009    0.000 {method 'release' of '_thread.lock' objects}
+     1876    0.008    0.000    0.091    0.000 /root/miniconda/lib/python3.8/site-packages/apex/amp/_initialize.py:21(to_type)
+     1876    0.008    0.000    0.383    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/modules/conv.py:418(forward)
+    18760    0.008    0.000    0.008    0.000 {method 'values' of 'collections.OrderedDict' objects}
+      938    0.008    0.000    1.225    0.001 /root/miniconda/lib/python3.8/site-packages/apex/amp/_initialize.py:195(new_fwd)
+      938    0.008    0.000    2.038    0.002 /root/miniconda/lib/python3.8/site-packages/torch/autograd/__init__.py:57(backward)
+      940    0.008    0.000    0.031    0.000 /root/miniconda/lib/python3.8/multiprocessing/queues.py:80(put)
+      938    0.007    0.000    2.045    0.002 /root/miniconda/lib/python3.8/site-packages/torch/tensor.py:155(backward)
+     1876    0.007    0.000    0.131    0.000 /root/miniconda/lib/python3.8/site-packages/torch/_jit_internal.py:237(fn)
+     7512    0.007    0.000    0.012    0.000 /root/miniconda/lib/python3.8/site-packages/torch/tensor.py:458(__hash__)
+     4690    0.007    0.000    0.014    0.000 {built-in method builtins.any}
+     1876    0.006    0.000    0.012    0.000 /root/miniconda/lib/python3.8/typing.py:255(inner)
+      938    0.006    0.000    2.060    0.002 /root/miniconda/lib/python3.8/site-packages/torch/optim/lr_scheduler.py:62(wrapper)
+      938    0.006    0.000    0.007    0.000 /root/miniconda/lib/python3.8/contextlib.py:82(__init__)
+       96    0.005    0.000    0.005    0.000 {built-in method builtins.print}
+      938    0.005    0.000    9.543    0.010 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:912(_get_data)
+     2814    0.005    0.000    0.005    0.000 /root/miniconda/lib/python3.8/site-packages/apex/amp/frontend.py:43(__getattr__)
+     3784    0.005    0.000    0.144    0.000 {built-in method builtins.next}
+     1876    0.005    0.000    0.005    0.000 {method 'is_floating_point' of 'torch._C._TensorBase' objects}
+     7527    0.005    0.000    0.005    0.000 {built-in method builtins.id}
+      938    0.005    0.000    0.012    0.000 /root/miniconda/lib/python3.8/contextlib.py:117(__exit__)
+     5628    0.005    0.000    0.008    0.000 /root/miniconda/lib/python3.8/site-packages/torch/_overrides.py:792(<genexpr>)
+     6568    0.004    0.000    0.004    0.000 {built-in method time.time}
+     1876    0.004    0.000    0.006    0.000 /root/miniconda/lib/python3.8/typing.py:720(__hash__)
+      938    0.004    0.000    0.009    0.000 /root/miniconda/lib/python3.8/site-packages/torch/autograd/grad_mode.py:69(__exit__)
+      938    0.004    0.000    0.042    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/functional.py:1567(log_softmax)
+     1876    0.004    0.000    0.004    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/functional.py:1670(<listcomp>)
+      938    0.004    0.000    0.004    0.000 {method 'items' of 'dict' objects}
+        1    0.004    0.004    0.004    0.004 {method 'tolist' of 'torch._C._TensorBase' objects}
+     1876    0.004    0.000    0.016    0.000 /root/miniconda/lib/python3.8/site-packages/torch/_overrides.py:779(has_torch_function)
+     8442    0.004    0.000    0.004    0.000 /root/miniconda/lib/python3.8/site-packages/torch/jit/__init__.py:2277(is_scripting)
+      938    0.004    0.000    0.008    0.000 /root/miniconda/lib/python3.8/threading.py:1071(is_alive)
+     2820    0.004    0.000    0.006    0.000 /root/miniconda/lib/python3.8/threading.py:261(_is_owned)
+      938    0.003    0.000    9.530    0.010 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:766(_try_get_data)
+      938    0.003    0.000    0.151    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:1010(_process_data)
+     2814    0.003    0.000    0.004    0.000 {built-in method _abc._abc_instancecheck}
+      939    0.003    0.000    9.782    0.010 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:362(__next__)
+     1876    0.003    0.000    0.003    0.000 {method 'size' of 'torch._C._TensorBase' objects}
+      938    0.003    0.000    0.004    0.000 /root/miniconda/lib/python3.8/site-packages/torch/autograd/grad_mode.py:149(__init__)
+      938    0.003    0.000    0.003    0.000 {method 'float' of 'torch._C._TensorBase' objects}
+     3097    0.003    0.000    0.003    0.000 {method 'dim' of 'torch._C._TensorBase' objects}
+      938    0.003    0.000    0.005    0.000 /root/miniconda/lib/python3.8/site-packages/torch/autograd/grad_mode.py:65(__enter__)
+     1884    0.003    0.000    0.004    0.000 /root/miniconda/lib/python3.8/threading.py:249(__exit__)
+     1884    0.003    0.000    0.005    0.000 /root/miniconda/lib/python3.8/threading.py:246(__enter__)
+        1    0.003    0.003    0.003    0.003 {built-in method randperm}
+     1876    0.003    0.000    0.051    0.000 /root/miniconda/lib/python3.8/site-packages/apex/amp/_initialize.py:51(<genexpr>)
+     2814    0.003    0.000    0.007    0.000 /root/miniconda/lib/python3.8/abc.py:96(__instancecheck__)
+      938    0.003    0.000    0.009    0.000 /root/miniconda/lib/python3.8/contextlib.py:238(helper)
+      938    0.002    0.000    0.024    0.000 /root/miniconda/lib/python3.8/contextlib.py:108(__enter__)
+     1874    0.002    0.000    0.003    0.000 /root/miniconda/lib/python3.8/queue.py:208(_qsize)
+     1884    0.002    0.000    0.002    0.000 {method '__enter__' of '_thread.lock' objects}
+      938    0.002    0.000    0.002    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/functional.py:2204(<listcomp>)
+      939    0.002    0.000    0.004    0.000 /root/miniconda/lib/python3.8/threading.py:1017(_wait_for_tstate_lock)
+     1876    0.002    0.000    0.002    0.000 {built-in method torch._C.is_grad_enabled}
+     1876    0.002    0.000    0.002    0.000 {built-in method builtins.hash}
+      939    0.002    0.000    0.003    0.000 /root/miniconda/lib/python3.8/threading.py:258(_acquire_restore)
+      944    0.002    0.000    0.002    0.000 {method 'acquire' of '_multiprocessing.SemLock' objects}
+      940    0.001    0.000    0.114    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:356(_next_index)
+      938    0.001    0.000    0.002    0.000 /root/miniconda/lib/python3.8/queue.py:216(_get)
+     1876    0.001    0.000    0.001    0.000 {built-in method torch._C.set_grad_enabled}
+      939    0.001    0.000    0.002    0.000 /root/miniconda/lib/python3.8/threading.py:255(_release_save)
+        3    0.001    0.000    0.001    0.000 {built-in method marshal.loads}
+       94    0.001    0.000    0.001    0.000 {method 'format' of 'str' objects}
+      938    0.001    0.000    0.001    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/_reduction.py:7(get_enum)
+     1875    0.001    0.000    0.001    0.000 {built-in method time.monotonic}
+      967    0.001    0.000    0.001    0.000 {built-in method builtins.getattr}
+      952    0.001    0.000    0.001    0.000 {built-in method _thread.allocate_lock}
+     1881    0.001    0.000    0.001    0.000 {method 'append' of 'collections.deque' objects}
+      283    0.001    0.000    0.001    0.000 /root/miniconda/lib/python3.8/site-packages/torch/tensor.py:443(__len__)
+     1876    0.001    0.000    0.001    0.000 /root/miniconda/lib/python3.8/site-packages/torch/jit/__init__.py:2453(annotate)
+     1884    0.001    0.000    0.001    0.000 {method '__exit__' of '_thread.lock' objects}
+      938    0.001    0.000    0.001    0.000 /root/miniconda/lib/python3.8/site-packages/apex/amp/_initialize.py:49(<dictcomp>)
+     14/3    0.001    0.000    0.001    0.000 {built-in method _abc._abc_subclasscheck}
+      938    0.001    0.000    0.001    0.000 {method 'numel' of 'torch._C._TensorBase' objects}
+       16    0.001    0.000    0.001    0.000 {built-in method zeros_like}
+      938    0.001    0.000    0.001    0.000 /root/miniconda/lib/python3.8/site-packages/apex/amp/scaler.py:73(loss_scale)
+      945    0.001    0.000    0.001    0.000 /root/miniconda/lib/python3.8/threading.py:513(is_set)
+       12    0.001    0.000    0.001    0.000 {built-in method builtins.__build_class__}
+        1    0.000    0.000    0.105    0.105 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:690(__init__)
+      938    0.000    0.000    0.000    0.000 {method 'popleft' of 'collections.deque' objects}
+      939    0.000    0.000    0.000    0.000 {method 'remove' of 'collections.deque' objects}
+      189    0.000    0.000    0.001    0.000 /root/miniconda/lib/python3.8/site-packages/torchvision/datasets/mnist.py:104(__len__)
+       11    0.000    0.000    0.001    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:50(__init__)
+       94    0.000    0.000    0.002    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:309(__len__)
+       94    0.000    0.000    0.001    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/sampler.py:216(__len__)
+        3    0.000    0.000    0.000    0.000 {built-in method _thread.start_new_thread}
+       94    0.000    0.000    0.001    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/sampler.py:112(__len__)
+       95    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:297(_index_sampler)
+        1    0.000    0.000    0.088    0.088 /root/miniconda/lib/python3.8/multiprocessing/popen_fork.py:66(_launch)
+       94    0.000    0.000    0.001    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/sampler.py:98(num_samples)
+        3    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:761(__init__)
+        6    0.000    0.000    0.000    0.000 {built-in method posix.close}
+        5    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/util.py:186(__init__)
+        1    0.000    0.000    0.001    0.001 /root/miniconda/lib/python3.8/multiprocessing/queues.py:10(<module>)
+        1    0.000    0.000    0.000    0.000 {built-in method empty}
+       88    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/random.py:250(_randbelow_with_getrandbits)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:338(__init__)
+        9    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:222(__init__)
+       96    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:293(_auto_collation)
+        2    0.000    0.000    0.001    0.000 /root/miniconda/lib/python3.8/multiprocessing/queues.py:158(_start_thread)
+        3    0.000    0.000    0.000    0.000 {built-in method io.open_code}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/logging/__init__.py:223(_releaseLock)
+       88    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/random.py:285(choice)
+        2    0.000    0.000    0.073    0.037 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:1040(_shutdown_workers)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1431(find_spec)
+        9    0.000    0.000    0.000    0.000 {built-in method posix.stat}
+        1    0.000    0.000    0.000    0.000 {method 'random_' of 'torch._C._TensorBase' objects}
+        1    0.000    0.000    0.089    0.089 /root/miniconda/lib/python3.8/multiprocessing/process.py:110(start)
+        4    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:505(__init__)
+        2    0.000    0.000    0.000    0.000 {method 'flush' of '_io.TextIOWrapper' objects}
+       13    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/weakref.py:159(__setitem__)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/queue.py:33(__init__)
+        1    0.000    0.000    0.007    0.007 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/sampler.py:105(__iter__)
+        2    0.000    0.000    0.002    0.001 /root/miniconda/lib/python3.8/multiprocessing/queues.py:36(__init__)
+        6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:294(cache_from_source)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/process.py:80(__init__)
+        3    0.000    0.000    0.002    0.001 /root/miniconda/lib/python3.8/threading.py:540(wait)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:969(get_data)
+        3    0.000    0.000    0.000    0.000 {method 'read' of '_io.BufferedReader' objects}
+       11    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/tempfile.py:133(rng)
+        3    0.000    0.000    0.002    0.001 /root/miniconda/lib/python3.8/threading.py:834(start)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:11(<module>)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/cuda/__init__.py:382(current_device)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/connection.py:516(Pipe)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:890(_find_spec)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/_utils/signal_handling.py:47(_set_SIGCHLD_handler)
+       11    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/tempfile.py:147(<listcomp>)
+        3    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap_external>:849(get_code)
+        3    0.000    0.000    0.003    0.001 <frozen importlib._bootstrap>:650(_load_unlocked)
+       13    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/util.py:171(register_after_fork)
+       11    0.000    0.000    0.001    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:114(_make_name)
+        3    0.000    0.000    0.003    0.001 <frozen importlib._bootstrap>:956(_find_and_load_unlocked)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/queues.py:67(_after_fork)
+        2    0.000    0.000    0.004    0.002 /root/miniconda/lib/python3.8/multiprocessing/context.py:100(Queue)
+       11    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/weakref.py:103(remove)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:157(_get_module_lock)
+      154    0.000    0.000    0.000    0.000 {method 'getrandbits' of '_random.Random' objects}
+       11    0.000    0.000    0.001    0.000 /root/miniconda/lib/python3.8/tempfile.py:144(__next__)
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.iter}
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1302(_get_spec)
+        1    0.000    0.000    0.105    0.105 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:287(__iter__)
+        3    0.000    0.000    0.003    0.001 <frozen importlib._bootstrap>:986(_find_and_load)
+        1    0.000    0.000    0.072    0.072 /root/miniconda/lib/python3.8/selectors.py:402(select)
+       28    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:389(parent)
+       25    0.000    0.000    0.000    0.000 {built-in method posix.getpid}
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/signal.py:25(_int_to_enum)
+        1    0.000    0.000    0.089    0.089 /root/miniconda/lib/python3.8/multiprocessing/context.py:273(_Popen)
+        1    0.000    0.000    0.000    0.000 {function Random.seed at 0x7f5e3fc481f0}
+       18    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:62(_path_join)
+        4    0.000    0.000    0.000    0.000 {built-in method posix.pipe}
+        4    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/_weakrefset.py:81(add)
+        5    0.000    0.000    0.001    0.000 /root/miniconda/lib/python3.8/multiprocessing/context.py:65(Lock)
+        5    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/modules/module.py:774(__setattr__)
+        3    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:1177(_make_invoke_excepthook)
+        3    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/util.py:205(__call__)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:212(__init__)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/enum.py:278(__call__)
+       18    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:64(<listcomp>)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/popen_fork.py:24(poll)
+        3    0.000    0.000    0.002    0.001 <frozen importlib._bootstrap_external>:777(exec_module)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:477(_init_module_attrs)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:334(set)
+        1    0.000    0.000    0.072    0.072 /root/miniconda/lib/python3.8/multiprocessing/process.py:142(join)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/random.py:123(seed)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1265(_path_importer_cache)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/signal.py:35(_enum_to_int)
+        6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:68(_path_split)
+        4    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/context.py:80(Semaphore)
+        1    0.000    0.000    0.088    0.088 /root/miniconda/lib/python3.8/multiprocessing/popen_fork.py:15(__init__)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:629(spec_from_file_location)
+       49    0.000    0.000    0.000    0.000 {method 'rpartition' of 'str' objects}
+        9    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:51(_unpack_uint32)
+        1    0.000    0.000    0.000    0.000 {method 'release' of '_thread.RLock' objects}
+        6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:376(cached)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:78(acquire)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/cuda/__init__.py:161(_lazy_init)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/cuda/__init__.py:128(is_initialized)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/signal.py:51(getsignal)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:90(_path_is_mode_type)
+        9    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:80(_path_stat)
+       36    0.000    0.000    0.000    0.000 {method 'join' of 'str' objects}
+        9    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/modules/module.py:1168(named_children)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/queues.py:134(close)
+       23    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/util.py:48(debug)
+       13    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/weakref.py:323(__new__)
+        3    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap_external>:578(_compile_bytecode)
+        1    0.000    0.000    0.000    0.000 {built-in method posix.waitpid}
+       21    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:222(_verbose_message)
+       88    0.000    0.000    0.000    0.000 {method 'bit_length' of 'int' objects}
+        1    0.000    0.000    0.072    0.072 /root/miniconda/lib/python3.8/multiprocessing/connection.py:917(wait)
+        1    0.000    0.000    0.072    0.072 /root/miniconda/lib/python3.8/multiprocessing/popen_fork.py:40(wait)
+       13    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/weakref.py:328(__init__)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:296(notify_all)
+      5/1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/modules/module.py:1253(train)
+        5    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:1306(current_thread)
+        1    0.000    0.000    0.000    0.000 {built-in method torch._C._cuda_getDevice}
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:103(release)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/_utils/signal_handling.py:63(handler)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:424(_get_cached)
+     14/3    0.000    0.000    0.001    0.000 /root/miniconda/lib/python3.8/abc.py:100(__subclasscheck__)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:58(__init__)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1426(_get_spec)
+        4    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/connection.py:117(__init__)
+        4    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:1095(daemon)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:493(_classify_pyc)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/queues.py:200(_finalize_close)
+       11    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:90(_make_methods)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/random.py:94(__init__)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:549(module_from_spec)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/context.py:85(BoundedSemaphore)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/enum.py:557(__new__)
+        1    0.000    0.000    0.000    0.000 {built-in method torch._C._set_worker_pids}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:229(__enter__)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1334(find_spec)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:758(<genexpr>)
+        3    0.000    0.000    0.001    0.000 {built-in method builtins.exec}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/util.py:433(_flush_std_streams)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/popen_fork.py:1(<module>)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:94(__enter__)
+        1    0.000    0.000    0.000    0.000 {built-in method torch._C._error_if_any_worker_fails}
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/util.py:229(cancel)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:360(Barrier)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:144(__init__)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:734(_newname)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/_collections_abc.py:252(__subclasshook__)
+       42    0.000    0.000    0.000    0.000 {method 'rstrip' of 'str' objects}
+        4    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/context.py:233(get_context)
+       14    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x556dbd35eac0}
+       11    0.000    0.000    0.000    0.000 {built-in method _weakref._remove_dead_weakref}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/cuda/__init__.py:47(is_available)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/context.py:90(Event)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/queue.py:205(_init)
+        3    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:1110(daemon)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:147(__enter__)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:519(set)
+        6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:1017(_handle_fromlist)
+        3    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/_weakrefset.py:38(_remove)
+        1    0.000    0.000    0.089    0.089 /root/miniconda/lib/python3.8/multiprocessing/context.py:222(_Popen)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/queues.py:150(cancel_join_thread)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:46(SemLock)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:944(_stop)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/selectors.py:268(close)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/_collections_abc.py:72(_check_methods)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:526(_validate_timestamp_pyc)
+        1    0.000    0.000    0.000    0.000 {built-in method torch._C._cuda_isInBadFork}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/selectors.py:351(register)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:342(__init__)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:270(notify)
+        9    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/nn/modules/module.py:1159(children)
+        5    0.000    0.000    0.001    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:161(__init__)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:176(cb)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/selectors.py:234(register)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:456(_check_name_wrapper)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/selectors.py:347(__init__)
+        9    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:863(__enter__)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:232(__exit__)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:939(__init__)
+        9    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:867(__exit__)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:248(multiprocessing_context)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/process.py:153(is_alive)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/logging/__init__.py:214(_acquireLock)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:323(__init__)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/popen_fork.py:12(Popen)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/context.py:75(Condition)
+       22    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+        3    0.000    0.000    0.000    0.000 {built-in method _imp._fix_co_filename}
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:99(_path_isfile)
+       12    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/context.py:187(get_context)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/util.py:461(close_fds)
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.setattr}
+       15    0.000    0.000    0.000    0.000 {built-in method _imp.acquire_lock}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/queues.py:34(Queue)
+       13    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/_collections_abc.py:392(__subclasshook__)
+       11    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/context.py:197(get_start_method)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:35(_new_module)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/connection.py:173(close)
+        1    0.000    0.000    0.000    0.000 {method '__enter__' of '_multiprocessing.SemLock' objects}
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1010(path_stats)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:800(find_spec)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/signal.py:45(signal)
+        4    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:125(__init__)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:151(__exit__)
+       15    0.000    0.000    0.000    0.000 {built-in method _imp.release_lock}
+       11    0.000    0.000    0.000    0.000 {built-in method _thread.get_ident}
+        1    0.000    0.000    0.000    0.000 {built-in method torch._C._remove_worker_pids}
+        1    0.000    0.000    0.000    0.000 {built-in method torch._C._cuda_isDriverSufficient}
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:143(__init__)
+        9    0.000    0.000    0.000    0.000 {built-in method from_bytes}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/queues.py:289(JoinableQueue)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/process.py:234(ident)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:979(join)
+       11    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/process.py:37(current_process)
+        3    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap>:211(_call_with_frames_removed)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:184(RLock)
+        5    0.000    0.000    0.000    0.000 {method 'discard' of 'set' objects}
+        9    0.000    0.000    0.000    0.000 {method 'add' of 'set' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method torch._C._cuda_getDeviceCount}
+        1    0.000    0.000    0.000    0.000 {built-in method _signal.signal}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/selectors.py:209(__init__)
+        3    0.000    0.000    0.000    0.000 {built-in method _imp.is_frozen}
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/connection.py:360(_close)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:210(Condition)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:97(__exit__)
+        4    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/process.py:99(_check_closed)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:397(has_location)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/process.py:61(_cleanup)
+        3    0.000    0.000    0.000    0.000 {method 'endswith' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:1017(_shutdown_worker)
+        9    0.000    0.000    0.000    0.000 {built-in method posix.fspath}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/threading.py:364(notify_all)
+        3    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/connection.py:130(__del__)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/connection.py:933(<listcomp>)
+        1    0.000    0.000    0.000    0.000 {method 'acquire' of '_thread.RLock' objects}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/site-packages/torch/utils/data/dataloader.py:1100(__del__)
+        3    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/util.py:44(sub_debug)
+        2    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/process.py:94(<genexpr>)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/selectors.py:275(_key_from_fd)
+        3    0.000    0.000    0.000    0.000 {method 'pop' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/selectors.py:202(__exit__)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:40(_relax_case)
+        1    0.000    0.000    0.000    0.000 {built-in method math.ceil}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:235(_make_methods)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/selectors.py:21(_fileobj_to_fd)
+        1    0.000    0.000    0.000    0.000 <string>:1(__new__)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/selectors.py:215(_fileobj_lookup)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/queues.py:332(SimpleQueue)
+        2    0.000    0.000    0.000    0.000 {method 'setter' of 'property' objects}
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:725(find_spec)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/process.py:205(daemon)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:321(Event)
+        5    0.000    0.000    0.000    0.000 {method 'items' of 'collections.OrderedDict' objects}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/process.py:189(name)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/selectors.py:63(__init__)
+        1    0.000    0.000    0.000    0.000 {built-in method _signal.getsignal}
+        2    0.000    0.000    0.000    0.000 {method 'clear' of 'collections.deque' objects}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:123(Semaphore)
+        1    0.000    0.000    0.000    0.000 {method 'register' of 'select.poll' objects}
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:774(create_module)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:964(get_filename)
+        1    0.000    0.000    0.000    0.000 {method 'release' of '_multiprocessing.SemLock' objects}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:159(Lock)
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/multiprocessing/synchronize.py:142(BoundedSemaphore)
+        1    0.000    0.000    0.000    0.000 {built-in method posix.WIFSIGNALED}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 {method 'copy' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method select.poll}
+        1    0.000    0.000    0.000    0.000 {method '_is_mine' of '_multiprocessing.SemLock' objects}
+        1    0.000    0.000    0.000    0.000 {method 'clear' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 {method '__exit__' of '_multiprocessing.SemLock' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method posix.WEXITSTATUS}
+        1    0.000    0.000    0.000    0.000 {built-in method posix.WIFEXITED}
+        1    0.000    0.000    0.000    0.000 {method 'locked' of '_thread.lock' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.callable}
+        1    0.000    0.000    0.000    0.000 /root/miniconda/lib/python3.8/selectors.py:199(__enter__)
+
+
+

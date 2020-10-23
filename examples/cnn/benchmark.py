@@ -32,10 +32,15 @@ from tqdm import trange
 
 def train_resnet(DIST=True, graph=True, sequential=False, verbosity=0):
 
+    # dtype = tensor.float16
+    # nptype = np.float16
+    dtype = tensor.float32
+    nptype = np.float32
+
     # Define the hypermeters good for the train_resnet
-    niters = 100
-    batch_size = 32
-    sgd = opt.SGD(lr=0.1, momentum=0.9, weight_decay=1e-5)
+    niters = 591
+    batch_size = 128
+    sgd = opt.SGD(lr=0.1, momentum=0.9, weight_decay=1e-5, dtype=dtype)
 
     IMG_SIZE = 224
 
@@ -54,19 +59,20 @@ def train_resnet(DIST=True, graph=True, sequential=False, verbosity=0):
 
     dev = device.create_cuda_gpu_on(local_rank)
 
-    tx = tensor.Tensor((batch_size, 3, IMG_SIZE, IMG_SIZE), dev)
+    tx = tensor.Tensor((batch_size, 3, IMG_SIZE, IMG_SIZE), dev, dtype)
     ty = tensor.Tensor((batch_size,), dev, tensor.int32)
-    x = np.random.randn(batch_size, 3, IMG_SIZE, IMG_SIZE).astype(np.float32)
+    x = np.random.randn(batch_size, 3, IMG_SIZE, IMG_SIZE).astype(nptype)
     y = np.random.randint(0, 1000, batch_size, dtype=np.int32)
     tx.copy_from_numpy(x)
     ty.copy_from_numpy(y)
 
     dev.SetVerbosity(verbosity)
-    dev.SetSkipIteration(5)
+    dev.SetSkipIteration(0)
 
     # construct the model
     from model import resnet
-    model = resnet.resnet50(num_channels=3, num_classes=1000)
+    # model = resnet.resnet50(num_channels=3, num_classes=1000)
+    model = resnet.resnet18(num_channels=3, num_classes=1000)
 
     model.train()
     model.set_optimizer(sgd)

@@ -1183,8 +1183,47 @@ void GEMM<half_float::half, lang::Cuda>(const half_float::half alpha,
   const __half* betaPtr =
       static_cast<const __half*>(static_cast<const void*>(&beta));
   auto handle = ctx->cublas_handle;  // TODO(wangwei) set cudastream
-  CUBLAS_CHECK(cublasHgemm(handle, transb, transa, ncolB, nrowA, ncolA,
-                           alphaPtr, BPtr, ldb, APtr, lda, betaPtr, CPtr, ldc));
+  // cublasStatus_t cublasGemmEx(cublasHandle_t handle,
+  //                          cublasOperation_t transa, 
+  //                          cublasOperation_t transb,
+  //                          int m, 
+  //                          int n, 
+  //                          int k,
+  //                          const void    *alpha,
+  //                          const void     *A, 
+  //                          cudaDataType_t Atype, 
+  //                          int lda,
+  //                          const void     *B, 
+  //                          cudaDataType_t Btype, 
+  //                          int ldb,
+  //                          const void    *beta,
+  //                          void           *C, 
+  //                          cudaDataType_t Ctype, 
+  //                          int ldc,
+  //                          cudaDataType_t computeType, 
+  //                          cublasGemmAlgo_t algo)
+  CUBLAS_CHECK(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
+  cudaDataType_t Btype = CUDA_R_16F;
+  cudaDataType_t Atype = CUDA_R_16F;
+  cudaDataType_t Ctype = CUDA_R_16F;
+  cudaDataType_t computeType = CUDA_R_16F;
+  cublasGemmAlgo_t algo = CUBLAS_GEMM_DEFAULT_TENSOR_OP;
+
+  // std::cout<<"m="<<ncolB<<std::endl;
+  // std::cout<<"n="<<nrowA<<std::endl;
+  // std::cout<<"k="<<ncolA<<std::endl;
+  // std::cout<<"intptr_t(A) % 16="<<intptr_t(BPtr)<<"="<<intptr_t(BPtr)%16<<std::endl;
+  // std::cout<<"intptr_t(B) % 16="<<intptr_t(APtr)<<"="<<intptr_t(APtr)%16<<std::endl;
+  // std::cout<<"intptr_t(C) % 16="<<intptr_t(CPtr)<<"="<<intptr_t(CPtr)%16<<std::endl;
+  // std::cout<<"lda % 8="<<ldb<<"="<<ldb%8<<std::endl;
+  // std::cout<<"ldb % 8="<<lda<<"="<<lda%8<<std::endl;
+  // std::cout<<"ldc % 8="<<ldc<<"="<<ldc%8<<std::endl;
+
+  CUBLAS_CHECK(cublasGemmEx(handle, transb, transa, ncolB, nrowA, ncolA,
+                           alphaPtr, BPtr, Btype, ldb, APtr, Atype, lda,
+                           betaPtr, CPtr, Ctype, ldc, computeType, algo));
+  // CUBLAS_CHECK(cublasHgemm(handle, transb, transa, ncolB, nrowA, ncolA,
+  //                          alphaPtr, BPtr, ldb, APtr, lda, betaPtr, CPtr, ldc));
 }
 
 template <>

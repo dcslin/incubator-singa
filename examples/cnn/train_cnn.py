@@ -25,6 +25,8 @@ import numpy as np
 import time
 import argparse
 from PIL import Image
+import cProfile, pstats, io
+from pstats import SortKey
 
 np_dtype = {"float16": np.float16, "float32": np.float32}
 
@@ -130,7 +132,7 @@ def run(global_rank,
 
     if model == 'resnet':
         from model import resnet
-        model = resnet.resnet50(num_channels=num_channels,
+        model = resnet.resnet18(num_channels=num_channels,
                                 num_classes=num_classes)
     elif model == 'xceptionnet':
         from model import xceptionnet
@@ -152,6 +154,7 @@ def run(global_rank,
         sys.path.insert(0, parent)
         from mlp import module
         model = module.create_model(data_size=data_size,
+                                    perceptron_size=256,
                                     num_classes=num_classes)
 
     # For distributed training, sequential gives better performance
@@ -206,9 +209,31 @@ def run(global_rank,
         test_correct = np.zeros(shape=[1], dtype=np.float32)
         train_loss = np.zeros(shape=[1], dtype=np.float32)
 
+        forw_t = 0
+        loss_t = 0
+        back_t = 0
+
+        # pr = cProfile.Profile()
+        # pr.enable()
+
+        # b=0
+        # x = train_x[idx[b * batch_size:(b + 1) * batch_size]]
+        # if model.dimension == 4:
+        #     x = augmentation(x, batch_size)
+        #     if (image_size != model.input_size):
+        #         x = resize_dataset(x, model.input_size)
+        # x = x.astype(np_dtype[precision])
+        # y = train_y[idx[b * batch_size:(b + 1) * batch_size]]
+        # tx.copy_from_numpy(x)
+        # ty.copy_from_numpy(y)
+
+        # count=0
         model.train()
+        start=time.time()
         for b in range(num_train_batch):
+            # count+=1
             # Generate the patch data in this iteration
+
             x = train_x[idx[b * batch_size:(b + 1) * batch_size]]
             if model.dimension == 4:
                 x = augmentation(x, batch_size)
@@ -217,20 +242,44 @@ def run(global_rank,
             x = x.astype(np_dtype[precision])
             y = train_y[idx[b * batch_size:(b + 1) * batch_size]]
 
-            # Copy the patch data into input tensors
             tx.copy_from_numpy(x)
             ty.copy_from_numpy(y)
 
             # Train the model
             out, loss = model(tx, ty, dist_option, spars)
+
+            # a = time.time()
+            # out = model.forward(tx)
+            # b = time.time()
+            # loss = model.softmax_cross_entropy(out, ty)
+            # c = time.time()
+            # model.optimizer(loss)
+            # d = time.time()
+
+            # forw_t += (c-a)
+            # loss_t += (c-b)
+            # back_t += (d-c)
+
             train_correct += accuracy(tensor.to_numpy(out), y)
             train_loss += tensor.to_numpy(loss)[0]
 
-        if DIST:
+            # print("count",count)
+        dev.Sync()
+        end=time.time()
+        print("training time", end-start)
+
+        # pr.disable()
+        # s = io.StringIO()
+        # sortby = 'tottime'
+        # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        # ps.print_stats()
+        # print(s.getvalue())
+
+        # if DIST:
             # Reduce the Evaluation Accuracy and Loss from Multiple Devices
-            reducer = tensor.Tensor((1,), dev, tensor.float32)
-            train_correct = reduce_variable(train_correct, sgd, reducer)
-            train_loss = reduce_variable(train_loss, sgd, reducer)
+            # reducer = tensor.Tensor((1,), dev, tensor.float32)
+            # train_correct = reduce_variable(train_correct, sgd, reducer)
+            # train_loss = reduce_variable(train_loss, sgd, reducer)
 
         if global_rank == 0:
             print('Training loss = %f, training accuracy = %f' %
@@ -238,30 +287,32 @@ def run(global_rank,
                    (num_train_batch * batch_size * world_size)),
                   flush=True)
 
-        # Evaluation Phase
-        model.eval()
-        for b in range(num_val_batch):
-            x = val_x[b * batch_size:(b + 1) * batch_size]
-            if model.dimension == 4:
-                if (image_size != model.input_size):
-                    x = resize_dataset(x, model.input_size)
-            x = x.astype(np_dtype[precision])
-            y = val_y[b * batch_size:(b + 1) * batch_size]
-            tx.copy_from_numpy(x)
-            ty.copy_from_numpy(y)
-            out_test = model(tx)
-            test_correct += accuracy(tensor.to_numpy(out_test), y)
+        # print("forw %.5f,loss %.5f,back %.5f"%(forw_t, loss_t, back_t))
 
-        if DIST:
+        # Evaluation Phase
+        # model.eval()
+        # for b in range(num_val_batch):
+        #     x = val_x[b * batch_size:(b + 1) * batch_size]
+        #     if model.dimension == 4:
+        #         if (image_size != model.input_size):
+        #             x = resize_dataset(x, model.input_size)
+        #     x = x.astype(np_dtype[precision])
+        #     y = val_y[b * batch_size:(b + 1) * batch_size]
+        #     tx.copy_from_numpy(x)
+        #     ty.copy_from_numpy(y)
+        #     out_test = model(tx)
+        #     test_correct += accuracy(tensor.to_numpy(out_test), y)
+
+        # if DIST:
             # Reduce the Evaulation Accuracy from Multiple Devices
-            test_correct = reduce_variable(test_correct, sgd, reducer)
+            # test_correct = reduce_variable(test_correct, sgd, reducer)
 
         # Output the Evaluation Accuracy
-        if global_rank == 0:
-            print('Evaluation accuracy = %f, Elapsed Time = %fs' %
-                  (test_correct / (num_val_batch * batch_size * world_size),
-                   time.time() - start_time),
-                  flush=True)
+        # if global_rank == 0:
+        #     print('Evaluation accuracy = %f, Elapsed Time = %fs' %
+        #           (test_correct / (num_val_batch * batch_size * world_size),
+        #            time.time() - start_time),
+        #           flush=True)
 
     dev.PrintTimeProfiling()
 

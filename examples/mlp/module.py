@@ -37,15 +37,31 @@ class MLP(model.Model):
         self.num_classes = num_classes
         self.dimension = 2
 
-        self.relu = layer.ReLU()
+        self.relu1 = layer.ReLU()
+        self.relu2 = layer.ReLU()
+        self.relu3 = layer.ReLU()
+        self.relu4 = layer.ReLU()
+        self.relu5 = layer.ReLU()
         self.linear1 = layer.Linear(perceptron_size)
-        self.linear2 = layer.Linear(num_classes)
+        self.linear2 = layer.Linear(perceptron_size)
+        self.linear3 = layer.Linear(perceptron_size)
+        self.linear4 = layer.Linear(perceptron_size)
+        self.linear5 = layer.Linear(perceptron_size)
+        self.linear = layer.Linear(num_classes)
         self.softmax_cross_entropy = layer.SoftMaxCrossEntropy()
 
     def forward(self, inputs):
         y = self.linear1(inputs)
-        y = self.relu(y)
+        y = self.relu1(y)
         y = self.linear2(y)
+        y = self.relu2(y)
+        y = self.linear3(y)
+        y = self.relu3(y)
+        y = self.linear4(y)
+        y = self.relu4(y)
+        y = self.linear5(y)
+        y = self.relu5(y)
+        y = self.linear(y)
         return y
 
     def train_one_batch(self, x, y, dist_option, spars):
@@ -127,7 +143,7 @@ if __name__ == "__main__":
     sgd = opt.SGD(0.1, 0.9, 1e-5, dtype=singa_dtype[args.precision])
     tx = tensor.Tensor((400, 2), dev, precision)
     ty = tensor.Tensor((400,), dev, tensor.int32)
-    model = MLP(data_size=2, perceptron_size=3, num_classes=2)
+    model = MLP(data_size=2, perceptron_size=64, num_classes=2)
 
     # attached model to graph
     model.set_optimizer(sgd)

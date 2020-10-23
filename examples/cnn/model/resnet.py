@@ -42,9 +42,9 @@ class BasicBlock(layer.Layer):
     def __init__(self, inplanes, planes, stride=1, downsample=None):
         super(BasicBlock, self).__init__()
         self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn1 = layer.BatchNorm2d(planes)
+        #self.bn1 = layer.BatchNorm2d(planes)
         self.conv2 = conv3x3(planes, planes)
-        self.bn2 = layer.BatchNorm2d(planes)
+        #self.bn2 = layer.BatchNorm2d(planes)
         self.relu1 = layer.ReLU()
         self.add = layer.Add()
         self.relu2 = layer.ReLU()
@@ -55,11 +55,11 @@ class BasicBlock(layer.Layer):
         residual = x
 
         out = self.conv1(x)
-        out = self.bn1(out)
+        #out = self.bn1(out)
         out = self.relu1(out)
 
         out = self.conv2(out)
-        out = self.bn2(out)
+        #out = self.bn2(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
@@ -76,7 +76,7 @@ class Bottleneck(layer.Layer):
     def __init__(self, inplanes, planes, stride=1, downsample=None):
         super(Bottleneck, self).__init__()
         self.conv1 = layer.Conv2d(inplanes, planes, 1, bias=False)
-        self.bn1 = layer.BatchNorm2d(planes)
+        #self.bn1 = layer.BatchNorm2d(planes)
         self.relu1 = layer.ReLU()
         self.conv2 = layer.Conv2d(planes,
                                   planes,
@@ -84,13 +84,13 @@ class Bottleneck(layer.Layer):
                                   stride=stride,
                                   padding=1,
                                   bias=False)
-        self.bn2 = layer.BatchNorm2d(planes)
+        #self.bn2 = layer.BatchNorm2d(planes)
         self.relu2 = layer.ReLU()
         self.conv3 = layer.Conv2d(planes,
                                   planes * self.expansion,
                                   1,
                                   bias=False)
-        self.bn3 = layer.BatchNorm2d(planes * self.expansion)
+        #self.bn3 = layer.BatchNorm2d(planes * self.expansion)
 
         self.add = layer.Add()
         self.relu3 = layer.ReLU()
@@ -102,15 +102,15 @@ class Bottleneck(layer.Layer):
         residual = x
 
         out = self.conv1(x)
-        out = self.bn1(out)
+        #out = self.bn1(out)
         out = self.relu1(out)
 
         out = self.conv2(out)
-        out = self.bn2(out)
+        #out = self.bn2(out)
         out = self.relu2(out)
 
         out = self.conv3(out)
-        out = self.bn3(out)
+        #out = self.bn3(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
@@ -140,7 +140,7 @@ class ResNet(model.Model):
                                   stride=2,
                                   padding=3,
                                   bias=False)
-        self.bn1 = layer.BatchNorm2d(64)
+        #self.bn1 = layer.BatchNorm2d(64)
         self.relu = layer.ReLU()
         self.maxpool = layer.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1, layers1 = self._make_layer(block, 64, layers[0])
@@ -164,10 +164,11 @@ class ResNet(model.Model):
                 stride=stride,
                 bias=False,
             )
-            bn = layer.BatchNorm2d(planes * block.expansion)
+            #bn = layer.BatchNorm2d(planes * block.expansion)
 
             def _downsample(x):
-                return bn(conv(x))
+                #return bn(conv(x))
+                return conv(x)
 
             downsample = _downsample
 
@@ -186,7 +187,7 @@ class ResNet(model.Model):
 
     def forward(self, x):
         x = self.conv1(x)
-        x = self.bn1(x)
+        #x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
 
